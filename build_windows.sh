@@ -8,7 +8,8 @@
 #   ./build_windows.sh all --update-tools   vendor-win/ içindeki araçları yeniden indirir
 #
 # Gereksinimler: Node.js (windows/ içinde bir kere `npm install`), Swift (ikon üretimi için).
-# Gömülü araçlar (Windows x64): yt-dlp.exe (GitHub), ffmpeg.exe (gyan.dev essentials), deno.exe (GitHub)
+# Gömülü araçlar (Windows x64): yt-dlp.exe (GitHub), ffmpeg.exe (gyan.dev essentials), deno.exe (GitHub),
+#                               cacert.pem (curl.se; ffmpeg'in HTTPS sertifika doğrulaması için)
 set -euo pipefail
 cd "$(dirname "$0")"
 unset ELECTRON_RUN_AS_NODE
@@ -59,6 +60,13 @@ fetch_tools() {
     echo "→ deno.exe indiriliyor"
     curl -fSL --progress-bar -o vendor-win/deno.zip https://github.com/denoland/deno/releases/latest/download/deno-x86_64-pc-windows-msvc.zip
     unzip -oq vendor-win/deno.zip -d vendor-win && rm vendor-win/deno.zip
+  fi
+  if [[ ! -f vendor-win/cacert.pem ]]; then
+    # Güvenilir sertifika listesi (Mozilla, curl projesi yayımlar); kesit indirirken ffmpeg kullanır
+    echo "→ cacert.pem indiriliyor"
+    curl -fsSL -o vendor-win/cacert.pem https://curl.se/ca/cacert.pem
+    [[ "$(curl -fsSL https://curl.se/ca/cacert.pem.sha256 | awk '{print $1}')" == "$(shasum -a 256 vendor-win/cacert.pem | awk '{print $1}')" ]] \
+      || { rm -f vendor-win/cacert.pem; echo "cacert.pem sha256 uyuşmuyor!" >&2; exit 1; }
   fi
   [[ -s vendor-win/yt-dlp.version ]] || { echo "yt-dlp sürümü okunamadı" >&2; exit 1; }
 }
@@ -130,7 +138,7 @@ EOF
   "directories": { "output": "$root/$out/dist" },
   "files": ["src/**/*", "package.json"],
   "extraResources": [
-    { "from": "$root/vendor-win", "to": "bin", "filter": ["*.exe", "yt-dlp.version"] },
+    { "from": "$root/vendor-win", "to": "bin", "filter": ["*.exe", "yt-dlp.version", "cacert.pem"] },
     { "from": "$root/brands/$id/Fonts", "to": "licenses", "filter": ["*.txt"] }
   ],
   "asar": true,

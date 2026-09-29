@@ -85,6 +85,8 @@
   .feature .ic svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   .feature h3 { font-size: 17px; font-weight: 750; margin-bottom: 4px; }
   .feature p { font-size: 15px; color: var(--muted); }
+  .new { display: inline-block; vertical-align: 2px; margin-left: 4px; padding: 1px 7px; border-radius: 999px; background: var(--grad);
+         color: #fff; font-size: 11px; font-weight: 750; letter-spacing: .02em; }
 
   /* Adımlar */
   .alt { background: var(--surface-2); }
@@ -171,7 +173,7 @@
       <div class="feature">
         <div class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9 5 3-5 3z"/></svg></div>
         <h3>4K'ya kadar video</h3>
-        <p>Kaliteyi siz seçersiniz. Videolar QuickTime, Premiere ve Final Cut'ın doğrudan açabileceği biçimde kaydedilir.</p>
+        <p>Kaliteyi siz seçersiniz. Videolar QuickTime, Premiere ve Final Cut'ın doğrudan açabileceği biçimde kaydedilir. Aynı anda birden fazla video indirebilirsiniz.</p>
       </div>
       <div class="feature">
         <div class="ic"><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
@@ -179,9 +181,9 @@
         <p>Konuşmaları, müzikleri MP3, M4A, WAV veya FLAC olarak indirin.</p>
       </div>
       <div class="feature">
-        <div class="ic"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg></div>
-        <h3>Aynı anda birden fazla</h3>
-        <p>İndirmeler bir listede ilerler; bir yandan yenilerini ekleyebilirsiniz.</p>
+        <div class="ic"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.1 15.9M14.5 14.5 20 20M8.1 8.1 12 12"/></svg></div>
+        <h3>İstediğiniz kısmı indirin <span class="new">Yeni</span></h3>
+        <p>Uzun bir videonun tamamı yerine sadece ihtiyacınız olan bölümü alın: önizlemede başlangıcı ve bitişi seçin ya da 1:23 gibi yazın.</p>
       </div>
       <div class="feature">
         <div class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></div>
@@ -264,6 +266,10 @@
       <details>
         <summary>Bir gün indirmeler çalışmayı bıraktı.</summary>
         <p>Siteler sık değişir. Uygulamanın alt çubuğunun sağındaki <b>yt-dlp</b> sürüm numarasına tıklayarak indirme motorunu güncelleyin; genellikle bu yeterlidir.</p>
+      </details>
+      <details>
+        <summary>Videonun sadece bir kısmını indirebilir miyim?</summary>
+        <p>Evet. Bağlantıyı getirdikten sonra seçeneklerin altındaki <b>Sadece bir kısmını indir</b> anahtarını açın. Önizlemede zaman çizelgesindeki tutamaçları sürükleyerek ya da başlangıç ve bitişi <b>1:23</b> gibi yazarak aralığı seçin, <b>Seçimi oynat</b> ile kontrol edip <b>İndir</b>'e basın. Yalnızca o bölüm indirilir; kesim tam seçtiğiniz saniyeden yapılır.</p>
       </details>
       <details>
         <summary>Telefonda çalışır mı?</summary>

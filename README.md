@@ -48,6 +48,7 @@ Bu izin yalnızca bir kez verilir. DMG içindeki *Kurulum Rehberi* adımları re
 - **Otomatik algılama:** YouTube, X ve Instagram bağlantısını kopyalayıp uygulamaya dönmeniz yeterli.
 - **Video, sadece ses veya gelişmiş format seçimi;** 4K'ya kadar kalite, MP3 / M4A / WAV / FLAC / OPUS.
 - **Düzenleme programlarıyla uyumlu MP4:** 1080p üstü videolar QuickTime, Premiere ve Final Cut'ın açabileceği biçime otomatik dönüştürülür.
+- **Videonun sadece bir kısmını indirme:** Önizlemede başlangıç ve bitişi seçin (ya da `1:23` gibi yazın); yalnızca o bölüm, tam seçtiğiniz saniyeden kesilerek indirilir.
 - **Aynı anda birden fazla indirme**, iptal etme, klasörde gösterme.
 - **Oturum desteği:** Giriş gerektiren Instagram / X gönderileri için tarayıcınızdaki oturum kullanılır; uygulamaya şifre girilmez.
 - **Tek tıkla güncelleme:** Siteler değiştiğinde indirme aracı (yt-dlp) uygulama içinden güncellenir.

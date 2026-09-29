@@ -16,6 +16,11 @@ enum Tools {
     static var environment: [String: String] {
         var env = ProcessInfo.processInfo.environment
         env["PATH"] = [support.path, bundled.path, "/usr/bin", "/bin"].joined(separator: ":")
+        // Gömülü ffmpeg başka bir makinede derlendiği için güvenilir sertifika listesini bulamıyor;
+        // kesit indirirken (ffmpeg doğrudan siteye bağlanır) "certificate verify failed" hatası verir.
+        if FileManager.default.fileExists(atPath: "/etc/ssl/cert.pem") {
+            env["SSL_CERT_FILE"] = "/etc/ssl/cert.pem"
+        }
         return env
     }
 

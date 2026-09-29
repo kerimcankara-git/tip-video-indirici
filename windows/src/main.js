@@ -31,6 +31,10 @@ const env = {
   PATH: [supportBin, bundledBin, process.env.PATH].join(path.delimiter),
   PYTHONUTF8: '1',              // Windows'ta Türkçe dosya adları bozulmasın
   PYTHONIOENCODING: 'utf-8',
+  // Kesit indirirken ffmpeg siteye doğrudan bağlanır; gömülü ffmpeg güvenilir sertifika listesini
+  // kendisi bulamayabiliyor ("certificate verify failed"). Windows'ta uygulamayla gelen liste,
+  // macOS'ta (geliştirme) sistemin listesi kullanılır.
+  SSL_CERT_FILE: isWin ? path.join(bundledBin, 'cacert.pem') : '/etc/ssl/cert.pem',
 };
 
 function readText(file) {

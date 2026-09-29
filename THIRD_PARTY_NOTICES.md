@@ -10,6 +10,7 @@ Her biri kendi lisansına tabidir.
 | **Deno** – JavaScript çalışma ortamı (yt-dlp için) | 2.9.7 | [MIT](https://github.com/denoland/deno/blob/main/LICENSE.md) | https://github.com/denoland/deno |
 | **Electron** – Windows uygulama çatısı | 38.8.6 | [MIT](https://github.com/electron/electron/blob/main/LICENSE) | https://github.com/electron/electron |
 | **Mona Sans** – yazı tipi | – | [SIL Open Font License 1.1](brands/tip/Fonts/OFL.txt) | https://github.com/github/mona-sans |
+| **CA sertifika listesi** (yalnızca Windows; FFmpeg'in HTTPS doğrulaması için) | – | [Mozilla Public License 2.0](https://www.mozilla.org/MPL/2.0/) | https://curl.se/docs/caextract.html |
 
 ## FFmpeg
 
