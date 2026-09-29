@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>{{APP_NAME}} – Kurulum Rehberi</title>
+<style>
+  @font-face { font-family: "Brand"; src: url("{{FONT}}"); font-weight: 100 900; font-stretch: 75% 125%; }
+  :root {
+    color-scheme: light;
+    --accent: #{{ACCENT}}; --accent-dark: #{{ACCENT_DARK}};
+    --text: #1d1d1f; --muted: #6e6e73; --line: #e3e3e8; --bg: #f5f5f7;
+    --ok: #1f9d55; --no: #d93025;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { width: 860px; font: 15px/1.55 "Brand", -apple-system, sans-serif; color: var(--text); background: #fff; }
+
+  header { padding: 44px 56px 36px; background: linear-gradient(135deg, var(--accent), var(--accent-dark)); color: #fff; display: flex; gap: 22px; align-items: center; }
+  header img { width: 92px; height: 92px; margin: -6px; filter: drop-shadow(0 6px 14px rgba(0,0,0,.25)); }
+  header .kicker { font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; opacity: .8; }
+  header h1 { font-size: 32px; font-weight: 800; line-height: 1.15; }
+  header p { opacity: .9; margin-top: 4px; }
+
+  .intro { margin: 32px 56px 8px; padding: 18px 20px; background: var(--bg); border-radius: 14px; display: flex; gap: 14px; }
+  .intro .lead { display: block; margin-bottom: 2px; }
+  .intro .i { flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 800; display: grid; place-items: center; }
+
+  .step { margin: 28px 56px; display: grid; grid-template-columns: 52px 1fr; gap: 18px; }
+  .num { width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-dark)); color: #fff; font-size: 24px; font-weight: 800; display: grid; place-items: center; box-shadow: 0 6px 14px color-mix(in srgb, var(--accent) 35%, transparent); }
+  .step h2 { font-size: 21px; font-weight: 750; line-height: 1.25; margin: 11px 0 6px; }
+  .step p { color: #3a3a3c; }
+  .step p + p { margin-top: 6px; }
+  .scene { margin-top: 16px; padding: 28px; border-radius: 18px; background: linear-gradient(160deg, #eef0f5, #e2e5ee); display: flex; justify-content: center; align-items: center; gap: 24px; position: relative; }
+  .key { display: inline-block; padding: 1px 8px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px; background: #fff; font-weight: 650; font-size: 13.5px; }
+  .hl { color: var(--accent); font-weight: 700; }
+
+  /* Pencere çizimleri */
+  .win { background: #fff; border-radius: 12px; box-shadow: 0 12px 30px rgba(0,0,0,.14), 0 0 0 1px rgba(0,0,0,.06); overflow: hidden; }
+  .bar { height: 30px; background: #f2f2f4; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 7px; padding: 0 12px; font-size: 12px; color: var(--muted); }
+  .bar i { width: 11px; height: 11px; border-radius: 50%; background: #ff5f57; }
+  .bar i:nth-child(2) { background: #febc2e; } .bar i:nth-child(3) { background: #28c840; }
+  .bar span { margin-left: 10px; font-weight: 600; }
+  .icon { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; text-align: center; width: 120px; }
+  .icon img, .icon svg { width: 76px; height: 76px; }
+  .arrow { color: var(--accent); font-size: 13px; font-weight: 700; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .arrow svg { width: 120px; height: 34px; }
+
+  .callout { position: absolute; font-size: 12.5px; font-weight: 750; padding: 5px 10px; border-radius: 999px; color: #fff; white-space: nowrap; box-shadow: 0 4px 10px rgba(0,0,0,.15); }
+  .callout.ok { background: var(--ok); } .callout.no { background: var(--no); }
+  .ring-ok { box-shadow: 0 0 0 3px #fff, 0 0 0 6px var(--ok) !important; }
+  .ring-no { outline: 3px dashed var(--no); outline-offset: 3px; }
+
+  /* Finder */
+  .finder { width: 520px; display: grid; grid-template-columns: 150px 1fr; }
+  .finder .bar { grid-column: 1 / -1; }
+  .side { background: #f6f6f8; border-right: 1px solid var(--line); padding: 10px 8px; font-size: 12.5px; }
+  .side small { display: block; color: var(--muted); font-weight: 700; font-size: 10.5px; margin: 4px 6px; }
+  .side div { padding: 4px 8px; border-radius: 6px; }
+  .side .sel { background: var(--accent); color: #fff; font-weight: 700; }
+  .files { padding: 22px; display: flex; gap: 10px; }
+
+  /* Uyarı penceresi */
+  .alert { width: 300px; padding: 22px 22px 16px; text-align: center; background: #f6f6f8; border-radius: 16px; box-shadow: 0 18px 40px rgba(0,0,0,.2), 0 0 0 1px rgba(0,0,0,.06); position: relative; }
+  .alert .ico { position: relative; width: 64px; height: 64px; margin: 0 auto 10px; }
+  .alert .ico img { width: 64px; height: 64px; }
+  .alert .ico b { position: absolute; right: -4px; bottom: -2px; width: 26px; height: 26px; border-radius: 50%; background: #fbbc04; color: #1d1d1f; font-size: 16px; font-weight: 900; display: grid; place-items: center; border: 2px solid #f6f6f8; }
+  .alert h3 { font-size: 14px; font-weight: 750; margin-bottom: 6px; }
+  .alert p { font-size: 11.5px; color: #3a3a3c; line-height: 1.4; margin-bottom: 14px; }
+  .btn { display: block; width: 100%; padding: 6px; border-radius: 8px; font-size: 12.5px; font-weight: 600; background: #e4e4e8; margin-top: 7px; }
+  .btn.primary { background: #0a84ff; color: #fff; }
+
+  /* Sistem Ayarları */
+  .settings { width: 600px; display: grid; grid-template-columns: 170px 1fr; }
+  .settings .bar { grid-column: 1 / -1; }
+  .settings .side div { display: flex; align-items: center; gap: 8px; }
+  .settings .side span { width: 16px; height: 16px; border-radius: 4px; background: #8e8e93; flex: none; }
+  .pane { padding: 18px 22px; font-size: 12.5px; }
+  .pane h4 { font-size: 16px; font-weight: 750; margin-bottom: 12px; }
+  .pane .grp { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; color: var(--muted); }
+  .pane .sec { color: var(--text); display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .pane .sec .btn { width: auto; margin: 0; padding: 5px 12px; background: #fff; border: 1px solid #c7c7cc; }
+
+  .done { margin: 30px 56px; padding: 26px 28px; border-radius: 18px; background: color-mix(in srgb, var(--ok) 10%, #fff); border: 1px solid color-mix(in srgb, var(--ok) 30%, #fff); display: flex; gap: 18px; align-items: center; }
+  .done .ok { width: 52px; height: 52px; border-radius: 50%; background: var(--ok); color: #fff; font-size: 28px; font-weight: 900; display: grid; place-items: center; flex: none; }
+  .done h2 { font-size: 21px; font-weight: 750; }
+
+  .faq { margin: 8px 56px 48px; padding-top: 24px; border-top: 1px solid var(--line); font-size: 13.5px; color: #3a3a3c; }
+  .faq h3 { font-size: 15px; margin: 16px 0 4px; color: var(--text); }
+  code { font: 12px/1.5 ui-monospace, Menlo, monospace; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; display: block; margin-top: 6px; word-break: break-all; }
+</style>
+</head>
+<body>
+
+<header>
+  <img src="{{ICON}}" alt="">
+  <div>
+    <div class="kicker">Kurulum Rehberi</div>
+    <h1>{{APP_NAME}}</h1>
+    <p>Birkaç dakikada, adım adım kurulum</p>
+  </div>
+</header>
+
+<div class="intro">
+  <div class="i">!</div>
+  <div>
+    <b class="lead">Önce şunu bilin: ilk açılışta bir uyarı görmeniz normal.</b>
+    Bu uygulama Apple'ın ücretli geliştirici programıyla imzalanmadığı için macOS onu tanımıyor ve “kötü amaçlı yazılım içermediği doğrulanamadı” diyor. Uygulamada zararlı bir şey yok; aşağıdaki adımlarla <b>bir kereliğine</b> izin vermeniz yeterli.
+  </div>
+</div>
+
+<!-- 1 -->
+<section class="step">
+  <div class="num">1</div>
+  <div>
+    <h2>Uygulamayı Uygulamalar klasörüne sürükleyin</h2>
+    <p>Bu rehberin bulunduğu pencerede uygulama simgesini farenizle tutup sağdaki <span class="hl">Applications (Uygulamalar)</span> klasörünün üzerine bırakın. Kopyalama birkaç saniye sürer.</p>
+    <div class="scene">
+      <div class="win" style="width:520px">
+        <div class="bar"><i></i><i></i><i></i><span>{{APP_NAME}}</span></div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:8px;padding:26px 10px">
+          <div class="icon"><img src="{{ICON}}" alt=""><span>{{APP_NAME}}</span></div>
+          <div class="arrow">
+            <svg viewBox="0 0 120 34"><path d="M6 17h96" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-dasharray="2 10"/><path d="M96 6l14 11-14 11" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            sürükleyin
+          </div>
+          <div class="icon">
+            <svg viewBox="0 0 76 76"><path d="M6 18a6 6 0 0 1 6-6h18l6 7h28a6 6 0 0 1 6 6v35a6 6 0 0 1-6 6H12a6 6 0 0 1-6-6z" fill="#1e88e5"/><path d="M6 27h64v33a6 6 0 0 1-6 6H12a6 6 0 0 1-6-6z" fill="#42a5f5"/><path d="M38 34l-11 22h5l2.3-5h7.4l2.3 5h5L38 34zm-2 13l2-4.6 2 4.6z" fill="#fff"/></svg>
+            <span>Applications</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 2 -->
+<section class="step">
+  <div class="num">2</div>
+  <div>
+    <h2>Uygulamayı açın</h2>
+    <p>Finder'da sol taraftaki <span class="hl">Uygulamalar</span> klasörüne girin ve <b>{{APP_NAME}}</b> simgesine çift tıklayın. (Launchpad'den ya da <span class="key">⌘ Cmd</span> + <span class="key">Boşluk</span> ile adını yazarak da açabilirsiniz.)</p>
+    <div class="scene">
+      <div class="win finder">
+        <div class="bar"><i></i><i></i><i></i><span>Uygulamalar</span></div>
+        <div class="side">
+          <small>Sık Kullanılanlar</small>
+          <div>AirDrop</div><div>Son Kullanılanlar</div>
+          <div class="sel">Uygulamalar</div>
+          <div>Masaüstü</div><div>Belgeler</div><div>İndirilenler</div>
+        </div>
+        <div class="files">
+          <div class="icon" style="opacity:.35"><svg viewBox="0 0 76 76"><rect x="10" y="10" width="56" height="56" rx="13" fill="#8e8e93"/></svg><span>Takvim</span></div>
+          <div class="icon" style="position:relative"><img src="{{ICON}}" alt="" class="ring-ok" style="border-radius:18px"><span>{{APP_NAME}}</span>
+            <div class="callout ok" style="top:-14px;left:84px">Çift tıklayın</div></div>
+          <div class="icon" style="opacity:.35"><svg viewBox="0 0 76 76"><rect x="10" y="10" width="56" height="56" rx="13" fill="#8e8e93"/></svg><span>Notlar</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 3 -->
+<section class="step">
+  <div class="num">3</div>
+  <div>
+    <h2>Çıkan uyarıda <span style="color:var(--ok)">“Bitti”</span>ye basın</h2>
+    <p>Aşağıdakine benzer bir uyarı görünecek. Bu beklenen bir durum. <b>“Bitti”</b> (bazı sürümlerde “Tamam”) düğmesine basıp pencereyi kapatın.</p>
+    <p><b style="color:var(--no)">“Çöp Sepetine Taşı”ya basmayın</b> — basarsanız uygulama silinir ve 1. adımdan tekrar başlamanız gerekir.</p>
+    <div class="scene" style="padding:36px 28px">
+      <div class="alert">
+        <div class="ico"><img src="{{ICON}}" alt=""><b>!</b></div>
+        <h3>“{{APP_NAME}}” açılmadı</h3>
+        <p>Apple, “{{APP_NAME}}” uygulamasının Mac'inize zarar verebilecek veya gizliliğinizi tehlikeye atabilecek kötü amaçlı yazılım içermediğini doğrulayamadı.</p>
+        <span class="btn primary ring-ok">Bitti</span>
+        <span class="btn ring-no">Çöp Sepetine Taşı</span>
+        <div class="callout ok" style="right:-126px;bottom:52px">✓ Buna basın</div>
+        <div class="callout no" style="right:-138px;bottom:14px">✕ Buna basmayın</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 4 -->
+<section class="step">
+  <div class="num">4</div>
+  <div>
+    <h2>Sistem Ayarları'nda <span style="color:var(--ok)">“Yine de Aç”</span>a basın</h2>
+    <p>Ekranın sol üst köşesindeki <b>elma simgesine</b> tıklayın → <b>Sistem Ayarları</b>'nı açın. Soldaki listeden <span class="hl">Gizlilik ve Güvenlik</span>'i seçin ve sağ tarafı <b>en aşağıya kadar kaydırın</b>.</p>
+    <p>“{{APP_NAME}}, Mac'inizi korumak için engellendi” yazısının yanındaki <b>“Yine de Aç”</b> düğmesine basın.</p>
+    <div class="scene">
+      <div class="win settings">
+        <div class="bar"><i></i><i></i><i></i><span>Sistem Ayarları</span></div>
+        <div class="side">
+          <div><span style="background:#0a84ff"></span>Wi‑Fi</div>
+          <div><span style="background:#0a84ff"></span>Bluetooth</div>
+          <div><span></span>Genel</div>
+          <div><span style="background:#34c759"></span>Ekran</div>
+          <div class="sel"><span style="background:#fff"></span>Gizlilik ve Güvenlik</div>
+          <div><span style="background:#ff9500"></span>Bildirimler</div>
+        </div>
+        <div class="pane">
+          <h4>Gizlilik ve Güvenlik</h4>
+          <div class="grp">Konum Servisleri, Kişiler, Takvimler…</div>
+          <div class="grp" style="text-align:center;font-size:11px">⋮ &nbsp;aşağı kaydırın&nbsp; ⋮</div>
+          <div style="font-weight:750;margin:4px 0 6px">Güvenlik</div>
+          <div class="grp sec" style="position:relative">
+            <div>“{{APP_NAME}}”, Mac'inizi korumak için engellendi.</div>
+            <span class="btn ring-ok" style="white-space:nowrap">Yine de Aç</span>
+            <div class="callout ok" style="right:-8px;top:-30px">✓ Buna basın</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 5 -->
+<section class="step">
+  <div class="num">5</div>
+  <div>
+    <h2>Onaylayın</h2>
+    <p>Bir kez daha soracak: <b>“Yine de Aç”</b>a basın. Ardından Mac'inizin giriş şifresini yazın ya da Touch ID ile onaylayın.</p>
+    <div class="scene" style="padding:36px 28px">
+      <div class="alert">
+        <div class="ico"><img src="{{ICON}}" alt=""></div>
+        <h3>“{{APP_NAME}}” açılsın mı?</h3>
+        <p>Bu uygulamayı açarsanız, macOS'in varsayılan güvenlik ayarlarını bu uygulama için geçersiz kılmış olursunuz.</p>
+        <span class="btn primary ring-ok">Yine de Aç</span>
+        <span class="btn">Vazgeç</span>
+        <div class="callout ok" style="right:-126px;bottom:52px">✓ Buna basın</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="done">
+  <div class="ok">✓</div>
+  <div>
+    <h2>Hepsi bu kadar!</h2>
+    <p>Uygulama açılacak. Bu izni yalnızca bir kez veriyorsunuz; bundan sonra uygulamayı her zamanki gibi çift tıklayarak açabilirsiniz. İsterseniz bu pencereyi ve indirdiğiniz DMG dosyasını artık silebilirsiniz.</p>
+  </div>
+</div>
+
+<div class="faq">
+  <h3>Ekranımdaki yazılar biraz farklı</h3>
+  <p>macOS sürümüne göre uyarı metinleri ve düğme adları biraz değişebilir; adımların sırası aynıdır.</p>
+  <h3>“Yine de Aç” düğmesini göremiyorum</h3>
+  <p>Düğme, uygulamayı açmayı denedikten sonra yaklaşık bir saat görünür. 2. adımı tekrarlayın, ardından Sistem Ayarları'na tekrar bakın.</p>
+  <h3>Hiçbiri işe yaramadı (ileri düzey)</h3>
+  <p>Uygulamalar › İzlenceler klasöründen <b>Terminal</b>'i açın, aşağıdaki satırı yapıştırıp <span class="key">Enter</span>'a basın, sonra uygulamayı tekrar açın:</p>
+  <code>xattr -dr com.apple.quarantine "/Applications/{{APP_NAME}}.app"</code>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "video-indirici",
+  "private": true,
+  "version": "1.0.0",
+  "description": "YouTube, X ve Instagram video indirici",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^38.0.0",
+    "electron-builder": "^26.0.0"
+  },
+  "allowScripts": {
+    "electron@38.8.6": true
+  }
+}

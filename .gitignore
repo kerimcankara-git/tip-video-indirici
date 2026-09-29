@@ -1,0 +1,21 @@
+.deploy.env
+downloads/
+__pycache__/
+.DS_Store
+build/
+vendor/
+vendor-win/
+windows/node_modules/
+windows/src/brand.json
+windows/src/renderer/fonts/
+windows/src/renderer/icon.png
+vendor-x64/
+
+# GitHub deposu yalnızca TİP sürümünü içerir
+brands/egitimis/
+/egitimis.png
+
+# İlk tarayıcı sürümü ve sunucuya yükleme (kişisel)
+/deploy.sh
+/server.py
+/index.html

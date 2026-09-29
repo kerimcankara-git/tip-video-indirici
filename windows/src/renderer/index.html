@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; img-src 'self' https: data:; style-src 'self' 'unsafe-inline'; font-src 'self' data:">
+<title></title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="titlebar"></div>
+
+  <main id="scroll">
+    <header class="header">
+      <img src="icon.png" class="app-icon" alt="">
+      <div class="header-text">
+        <h1 id="appName"></h1>
+        <p id="tagline"></p>
+      </div>
+      <button id="helpBtn" class="pill help-btn" title="Kullanım rehberi (F1)"><span class="q">?</span> Nasıl Kullanılır</button>
+    </header>
+
+    <section class="urlbar-wrap">
+      <form id="urlForm" class="urlbar">
+        <svg class="i" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>
+        <input id="url" type="text" placeholder="YouTube, X veya Instagram bağlantısı…" autocomplete="off" spellcheck="false">
+        <button type="button" id="clearBtn" class="icon-btn subtle hidden" title="Temizle">✕</button>
+        <button type="button" id="pasteBtn" class="pill">Yapıştır</button>
+        <button type="submit" id="fetchBtn" class="pill filled hidden">Getir</button>
+      </form>
+      <div id="fetchError" class="error hidden"></div>
+      <div id="loginHint" class="hint hidden"></div>
+    </section>
+
+    <section id="empty" class="empty">
+      <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>
+      <b>YouTube, X (Twitter) ya da Instagram bağlantısı yapıştır veya buraya sürükle</b>
+      <span>Panoda bir bağlantı varsa uygulamaya döndüğünde otomatik algılanır.</span>
+    </section>
+
+    <section id="details" class="hidden">
+      <div class="card video-card">
+        <div class="thumb"><img id="thumb" alt=""><span id="duration" class="duration"></span></div>
+        <div class="meta">
+          <div id="tags" class="tags"></div>
+          <h2 id="title"></h2>
+          <div id="uploader" class="uploader"></div>
+          <div id="best" class="best"></div>
+        </div>
+      </div>
+
+      <div class="card options">
+        <div class="segmented" id="modes">
+          <button data-mode="video" class="active">Video</button>
+          <button data-mode="audio">Sadece Ses</button>
+          <button data-mode="custom">Gelişmiş</button>
+          <span class="seg-bg"></span>
+        </div>
+
+        <div data-panel="video">
+          <div class="row"><label>Kalite</label><div class="chips" id="heights"></div></div>
+          <div class="row"><label>Format</label><div class="chips" id="containers"></div></div>
+          <div id="videoHint" class="hint hidden"></div>
+        </div>
+        <div data-panel="audio" class="hidden">
+          <div class="row"><label>Format</label><div class="chips" id="audioFormats"></div></div>
+          <div class="row" id="bitrateRow"><label>Bit hızı</label><div class="chips" id="bitrates"></div></div>
+        </div>
+        <div data-panel="custom" class="hidden">
+          <p class="small muted">Bir format seç. Sadece video içeren formatlara en iyi ses otomatik eklenir.</p>
+          <div class="format-table" id="formatTable"></div>
+        </div>
+      </div>
+
+      <button id="downloadBtn" class="download-btn">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 7v9m-4-4 4 4 4-4" fill="none"/></svg>
+        İndir
+      </button>
+    </section>
+
+    <section id="jobsSection" class="hidden">
+      <div class="jobs-head"><h3>İndirmeler</h3><button id="clearJobs" class="link hidden">Bitenleri temizle</button></div>
+      <div id="jobs"></div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <button id="folderBtn" class="link folder" title="Klasörü aç">
+      <svg viewBox="0 0 24 24"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5H9l2 2h8.5A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"/></svg>
+      <span class="path"><bdi id="folderPath"></bdi></span>
+    </button>
+    <button id="changeFolder" class="link accent">Değiştir…</button>
+    <span class="spacer"></span>
+    <label class="session" title="Instagram ve bazı X gönderileri giriş ister. Seçilen tarayıcıdaki oturum kullanılır.">
+      Oturum:
+      <select id="cookies">
+        <option value="">Yok</option>
+        <option value="firefox">Firefox</option>
+        <option value="chrome">Chrome</option>
+        <option value="edge">Edge</option>
+        <option value="brave">Brave</option>
+        <option value="opera">Opera</option>
+      </select>
+    </label>
+    <span id="toolMsg" class="muted"></span>
+    <button id="updateBtn" class="link" title="Sitelerde bir değişiklik olunca indirmeler bozulabilir; buradan yt-dlp'yi güncelle.">yt-dlp</button>
+  </footer>
+
+  <!-- "Nasıl Kullanılır" penceresi. İçerik Mac sürümündeki app/Sources/HelpView.swift ile aynı tutulmalı. -->
+  <div id="help" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+    <div class="sheet">
+      <div class="sheet-head">
+        <h2 id="helpTitle"><span class="q">?</span> Nasıl Kullanılır</h2>
+        <button id="helpClose" class="pill filled">Kapat</button>
+      </div>
+      <div class="sheet-body">
+        <section class="hsec">
+          <h3><span>⚡</span> Hızlı başlangıç</h3>
+          <ol>
+            <li>Videonun bağlantısını kopyala (tarayıcıda adres çubuğundan ya da uygulamada <b>Paylaş › Bağlantıyı Kopyala</b>).</li>
+            <li>Uygulamaya dön: desteklenen bir bağlantıysa <b>kendiliğinden algılanır</b>. Algılanmazsa <b>Yapıştır</b>'a bas ya da bağlantıyı pencereye sürükle.</li>
+            <li>Video / Sadece Ses seçip kaliteyi ve formatı belirle.</li>
+            <li><b>İndir</b>'e bas (Ctrl + Enter). Birden fazla videoyu aynı anda indirebilirsin; ilerlemeyi aşağıdaki listede görürsün.</li>
+          </ol>
+        </section>
+
+        <section class="hsec">
+          <h3><span>🌐</span> Desteklenen platformlar</h3>
+          <p>Panodan <b>otomatik algılananlar:</b></p>
+          <div class="ptags" id="autoPlatforms"></div>
+          <p>Bağlantıyı <b>yapıştırarak</b> indirebileceğin diğer popüler siteler:</p>
+          <div class="ptags" id="otherPlatforms"></div>
+          <p>…ve 1000'den fazlası. <a href="#" id="sitesLink">Tam listeyi gör ↗</a></p>
+        </section>
+
+        <section class="hsec">
+          <h3><span>🎚</span> İndirme seçenekleri</h3>
+          <ul>
+            <li><b>Video:</b> Kaliteyi seç (En iyi, 4K, 1080p…). <b>MP4</b> Premiere ve Windows oynatıcılarıyla uyumludur; 1080p üstü videolar indirme sonrası otomatik olarak H.264'e çevrilir (varsa ekran kartı kullanılır). MKV/WEBM dönüştürülmez.</li>
+            <li><b>Sadece Ses:</b> MP3, M4A, WAV, FLAC veya OPUS; kayıplı formatlarda bit hızını seçebilirsin.</li>
+            <li><b>Gelişmiş:</b> Sitenin sunduğu tüm formatları listeler; belirli bir formatı seçmek için.</li>
+            <li>Bir gönderide birden fazla video varsa (ör. tweet, Instagram carousel) hepsi indirilir.</li>
+          </ul>
+        </section>
+
+        <section class="hsec">
+          <h3><span>👤</span> Oturum açma (Instagram vb.)</h3>
+          <p>Instagram'daki çoğu gönderi ve bazı X videoları giriş ister. Uygulamaya şifre girmezsin; bunun yerine o siteye <b>giriş yaptığın tarayıcının oturumu</b> kullanılır.</p>
+          <ol>
+            <li>Tarayıcında Instagram'a giriş yap. <b>Firefox önerilir</b>: Chrome ve Edge çerezlerini Windows'ta şifrelediği için okunamayabilir.</li>
+            <li>Uygulamanın alt çubuğundaki <b>Oturum</b> menüsünden o tarayıcıyı seç.</li>
+            <li>Bağlantıyı tekrar getir.</li>
+          </ol>
+          <ul><li>Chrome / Edge seçiliyken hata alırsan tarayıcıyı tamamen kapatıp tekrar dene ya da Firefox'a geç.</li></ul>
+        </section>
+
+        <section class="hsec">
+          <h3><span>📁</span> İndirme klasörü</h3>
+          <p>Dosyalar varsayılan olarak <b>İndirilenler › <span class="appName"></span></b> klasörüne kaydedilir.</p>
+          <ul>
+            <li>Alt çubuktaki klasör yoluna tıklayınca klasör açılır.</li>
+            <li><b>Değiştir…</b> ile başka bir klasör seçebilirsin; seçimin hatırlanır.</li>
+            <li>Biten bir indirmenin yanındaki ▶ dosyayı açar, 📂 klasörde gösterir.</li>
+          </ul>
+        </section>
+
+        <section class="hsec">
+          <h3><span>⟳</span> yt-dlp'yi güncelleme</h3>
+          <p>İndirmeleri <b>yt-dlp</b> adlı açık kaynak araç yapar. YouTube ve diğer siteler sık değiştiği için bir gün indirmeler hata vermeye başlarsa ilk yapılacak şey güncellemektir:</p>
+          <ul><li>Alt çubuğun sağındaki <b>yt-dlp</b> sürüm numarasına tıkla. Birkaç saniye içinde en son sürüm indirilir; uygulamayı yeniden kurman gerekmez.</li></ul>
+        </section>
+
+        <section class="hsec">
+          <h3><span>🔧</span> Sorun giderme</h3>
+          <ul>
+            <li><b>“Video bilgileri alınamadı”</b> ya da benzeri bir hata: önce yt-dlp'yi güncelle, sonra tekrar dene.</li>
+            <li><b>Giriş gerektiriyor</b> uyarısı: yukarıdaki <i>Oturum açma</i> adımlarını uygula.</li>
+            <li><b>Özel ya da yaş sınırlı</b> videolar yalnızca oturum açıkken indirilebilir.</li>
+            <li>İndirme yarıda kaldıysa listeden kaldırıp yeniden başlatabilirsin.</li>
+          </ul>
+        </section>
+
+        <p class="legal" id="helpFooter"></p>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

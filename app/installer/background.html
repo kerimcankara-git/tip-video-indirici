@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<!-- DMG penceresinin arka planı. Tasarım sol üstteki 760×620 alanda; Finder arka planı ölçeklemediği ve
+     pencereyi bazen daha büyük açtığı için görsel daha geniş üretilir, zemin tüm alanı doldurur.
+     İlk açılış adımları doğrudan burada; böylece kullanıcının DMG içinden bir dosya açması gerekmez
+     (onaysız, indirilmiş DMG'lerde bazı Mac'ler içerideki PDF'i açtırmıyor).
+     Simge konumları app/installer/dmg_settings.py ile aynı olmalı:
+     uygulama (200,160) · Applications (560,160) · Kurulum Rehberi (660,540), simge boyu 96 -->
+<style>
+  @font-face { font-family: "Brand"; src: url("{{FONT}}"); font-weight: 100 900; font-stretch: 75% 125%; }
+  :root { color-scheme: light; --accent: #{{ACCENT}}; --accent-dark: #{{ACCENT_DARK}}; --ok: #1f9d55; --no: #d93025; }
+  * { margin: 0; box-sizing: border-box; }
+  html { zoom: {{ZOOM}}; }
+  body { width: {{CANVAS_W}}px; height: {{CANVAS_H}}px; overflow: hidden;
+         font-family: "Brand", -apple-system, sans-serif; color: #1d1d1f;
+         background: radial-gradient(ellipse 560px 400px at 380px 0px, color-mix(in srgb, var(--accent) 10%, #fbfbfd), #fbfbfd); }
+  .stage { position: relative; width: 760px; height: 620px; }
+
+  .title { position: absolute; top: 26px; left: 0; right: 0; text-align: center; }
+  .title small { display: block; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
+  .title b { font-size: 19px; font-weight: 750; }
+  .arrow { position: absolute; left: 266px; top: 136px; width: 228px; height: 48px; color: var(--accent); }
+
+  .divider { position: absolute; left: 40px; right: 40px; top: 258px; border-top: 1px solid color-mix(in srgb, var(--accent) 18%, #e5e5ea); }
+  .steps-title { position: absolute; left: 40px; right: 40px; top: 274px; font-size: 13.5px; font-weight: 700; color: var(--accent-dark); }
+  .steps-title span { font-weight: 500; color: #6e6e73; }
+
+  .cards { position: absolute; left: 40px; top: 308px; display: grid; grid-template-columns: repeat(3, 216px); gap: 16px; }
+  .card { position: relative; height: 164px; padding: 12px 14px; border-radius: 14px; background: #fff;
+          box-shadow: 0 4px 16px rgba(0,0,0,.06), 0 0 0 1px rgba(0,0,0,.05); display: flex; flex-direction: column; gap: 10px; }
+  .card p { font-size: 12px; line-height: 1.4; color: #3a3a3c; }
+  .card p b { color: #1d1d1f; }
+  .num { position: absolute; top: -10px; left: -10px; width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+         color: #fff; font-size: 13px; font-weight: 800; display: grid; place-items: center; box-shadow: 0 3px 8px rgba(0,0,0,.18); }
+  .art { height: 76px; border-radius: 10px; background: linear-gradient(160deg, #eef0f5, #e2e5ee); display: grid; place-items: center; }
+
+  /* 1: uyarı penceresi */
+  .alert { width: 124px; padding: 7px 8px; border-radius: 9px; background: #f6f6f8; box-shadow: 0 4px 10px rgba(0,0,0,.15); display: flex; flex-direction: column; gap: 4px; }
+  .alert i { display: block; height: 4px; border-radius: 2px; background: #c7c7cc; }
+  .alert i.short { width: 60%; margin: 0 auto 2px; }
+  .btn { height: 14px; border-radius: 4px; font-size: 8.5px; font-weight: 700; display: grid; place-items: center; }
+  .btn.primary { background: #0a84ff; color: #fff; box-shadow: 0 0 0 1.5px #fff, 0 0 0 3.5px var(--ok); margin-bottom: 2px; }
+  .btn.trash { background: #e4e4e8; color: #3a3a3c; outline: 1.5px dashed var(--no); outline-offset: 1.5px; }
+
+  /* 2: Sistem Ayarları */
+  .pane { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 9px; background: #fff; box-shadow: 0 4px 10px rgba(0,0,0,.12); font-size: 11px; font-weight: 700; }
+  .pane svg { width: 22px; height: 22px; }
+
+  /* 3: Yine de Aç */
+  .open { padding: 7px 14px; border-radius: 7px; background: #fff; border: 1px solid #c7c7cc; font-size: 11.5px; font-weight: 700;
+          box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--ok), 0 4px 10px rgba(0,0,0,.12); }
+
+  .more { position: absolute; left: 40px; top: 502px; width: 520px; padding: 12px 16px; border-radius: 14px; background: #fff;
+          box-shadow: 0 4px 16px rgba(0,0,0,.06), 0 0 0 1px rgba(0,0,0,.05); font-size: 12px; line-height: 1.5; color: #3a3a3c; }
+  .more b { color: var(--accent-dark); }
+  .more-arrow { position: absolute; left: 570px; top: 528px; width: 40px; height: 24px; color: var(--accent); }
+
+  /* Uygulama Apple onaylıysa (notarize) uyarı çıkmaz; adımlar ve rehber gösterilmez */
+  .help { display: {{HELP_DISPLAY}}; }
+</style>
+</head>
+<body><div class="stage">
+  <div class="title"><small>{{APP_NAME}}</small><b>Kurmak için simgeyi Applications klasörüne sürükleyin</b></div>
+  <svg class="arrow" viewBox="0 0 228 48"><path d="M10 24h190" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-dasharray="1 13"/><path d="M192 9l20 15-20 15" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+
+  <div class="help">
+    <div class="divider"></div>
+    <div class="steps-title">İlk açılışta “açılamadı” uyarısı mı çıktı? <span>Normal bir durum; bir kerelik izin verin:</span></div>
+
+    <div class="cards">
+      <div class="card">
+        <div class="num">1</div>
+        <div class="art">
+          <div class="alert"><i class="short"></i><i></i><span class="btn primary">Bitti</span><span class="btn trash">Çöp Sepetine Taşı</span></div>
+        </div>
+        <p>Uyarıda <b>“Bitti”</b>ye basın.<br><b style="color:var(--no)">Çöp Sepeti</b>'ne basmayın!</p>
+      </div>
+      <div class="card">
+        <div class="num">2</div>
+        <div class="art">
+          <div class="pane">
+            <svg viewBox="0 0 24 24"><rect width="24" height="24" rx="6" fill="#0a84ff"/><path d="M12 5.5l5 2v4.2c0 3.3-2.1 5.6-5 6.8-2.9-1.2-5-3.5-5-6.8V7.5z" fill="#fff"/></svg>
+            Gizlilik ve Güvenlik
+          </div>
+        </div>
+        <p>Elma menüsü › <b>Sistem Ayarları</b> › <b>Gizlilik ve Güvenlik</b>'i açıp en alta kaydırın.</p>
+      </div>
+      <div class="card">
+        <div class="num">3</div>
+        <div class="art"><span class="open">Yine de Aç</span></div>
+        <p><b>“Yine de Aç”</b>a basın ve Mac şifrenizi girin. Bu kadar!</p>
+      </div>
+    </div>
+
+    <div class="more">
+      <b>Resimli, ayrıntılı anlatım:</b> Kurulum Rehberi<br>
+      Açılmazsa rehberi önce masaüstüne sürükleyin, oradan açın.
+    </div>
+    <svg class="more-arrow" viewBox="0 0 40 24"><path d="M2 12h28" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/><path d="M24 4l10 8-10 8" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </div>
+</div></body>
+</html>
