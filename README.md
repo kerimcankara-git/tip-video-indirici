@@ -9,6 +9,10 @@
   <b>TİP Propaganda Bürosu</b> tarafından üretilmiştir.
 </p>
 
+<p align="center">
+  <a href="https://kerimcankara-git.github.io/tip-video-indirici/"><b>🌐 Tanıtım ve indirme sayfası</b></a>
+</p>
+
 ---
 
 ## İndir
@@ -79,6 +83,7 @@ Gömülü araçlar (yt-dlp, ffmpeg, deno) derleme sırasında resmi kaynakların
 
 ## Lisanslar
 
+Kaynak kod [MIT lisansı](LICENSE) ile yayımlanmıştır. TİP adı ve logosu bu lisansın kapsamında değildir.
 Uygulamayla birlikte dağıtılan üçüncü taraf yazılımlar ve fontlar için bkz. [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 Yalnızca indirme ve kullanma hakkınız olan içerikleri indirin.

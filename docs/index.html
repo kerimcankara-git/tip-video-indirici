@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TİP Video İndirici</title>
+<meta name="description" content="YouTube, X (Twitter), Instagram ve 1000'den fazla siteden video ve ses indirmek için ücretsiz Mac ve Windows uygulaması. TİP Propaganda Bürosu tarafından üretilmiştir.">
+<meta property="og:title" content="TİP Video İndirici">
+<meta property="og:description" content="YouTube, X ve Instagram videolarını tek tıkla indirin. Mac ve Windows için ücretsiz.">
+<meta property="og:image" content="icon.png">
+<link rel="icon" href="icon.png">
+<style>
+  @font-face { font-family: "Mona"; src: url("fonts/MonaSansVF.ttf") format("truetype"); font-weight: 200 900; font-stretch: 75% 125%; font-display: swap; }
+
+  :root {
+    --accent: #dc343b; --accent-dark: #a81f26;
+    --bg: #fbfbfd; --surface: #ffffff; --surface-2: #f3f3f6; --text: #1d1d1f; --muted: #5f5f66; --faint: #8e8e93;
+    --line: rgba(0,0,0,.08); --shadow: 0 10px 30px rgba(0,0,0,.08);
+    --grad: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #111113; --surface: #1c1c1f; --surface-2: #26262a; --text: #f5f5f7; --muted: #a8a8ae; --faint: #75757c;
+      --line: rgba(255,255,255,.09); --shadow: 0 10px 30px rgba(0,0,0,.4);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #111113; --surface: #1c1c1f; --surface-2: #26262a; --text: #f5f5f7; --muted: #a8a8ae; --faint: #75757c;
+    --line: rgba(255,255,255,.09); --shadow: 0 10px 30px rgba(0,0,0,.4);
+  }
+
+  * { box-sizing: border-box; margin: 0; }
+  html { scroll-behavior: smooth; }
+  body { font: 16px/1.6 "Mona", -apple-system, "Segoe UI", system-ui, sans-serif; color: var(--text); background: var(--bg); -webkit-font-smoothing: antialiased; }
+  a { color: var(--accent); }
+  img { max-width: 100%; display: block; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
+  section { padding: 72px 0; }
+  h2 { font-size: clamp(26px, 4vw, 34px); font-weight: 800; font-stretch: 110%; line-height: 1.15; margin-bottom: 12px; }
+  .lead { color: var(--muted); font-size: 18px; max-width: 620px; }
+  .center { text-align: center; }
+  .center .lead { margin: 0 auto; }
+
+  /* Üst */
+  .hero { padding: 64px 0 40px; background: radial-gradient(ellipse 900px 520px at 50% -10%, color-mix(in srgb, var(--accent) 16%, transparent), transparent); }
+  .hero .icon { width: 132px; height: 132px; margin: 0 auto 18px; filter: drop-shadow(0 16px 30px color-mix(in srgb, var(--accent) 30%, transparent)); }
+  .kicker { font-size: 13px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
+  .hero h1 { font-size: clamp(38px, 7vw, 64px); font-weight: 850; font-stretch: 115%; line-height: 1.02; letter-spacing: -.01em; margin: 8px 0 16px; }
+  .hero .lead { font-size: clamp(17px, 2.2vw, 20px); }
+
+  /* İndirme */
+  .download { margin: 32px auto 0; max-width: 560px; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 12px; padding: 16px 28px; border-radius: 14px;
+         background: var(--grad); color: #fff; text-decoration: none; font-weight: 800; font-stretch: 108%; font-size: 18px;
+         box-shadow: 0 10px 24px color-mix(in srgb, var(--accent) 35%, transparent); transition: transform .12s, box-shadow .12s; }
+  .btn:hover { transform: translateY(-1px); box-shadow: 0 14px 30px color-mix(in srgb, var(--accent) 45%, transparent); }
+  .btn svg { width: 22px; height: 22px; flex: none; }
+  .btn small { display: block; font-size: 12.5px; font-weight: 600; opacity: .85; font-stretch: 100%; }
+  .btn .txt { text-align: left; line-height: 1.25; }
+  .btn.secondary { background: var(--surface); color: var(--text); border: 1px solid var(--line); box-shadow: none; }
+  .btn.secondary:hover { border-color: color-mix(in srgb, var(--accent) 50%, transparent); }
+  .choice { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .choice .btn { width: 100%; font-size: 16px; padding: 14px 18px; }
+  .hint { margin-top: 14px; font-size: 14px; color: var(--muted); }
+  .others { margin-top: 18px; font-size: 14px; color: var(--muted); display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 16px; }
+  .others a { font-weight: 600; text-decoration: none; }
+  .others a:hover { text-decoration: underline; }
+  .note { margin-top: 18px; padding: 12px 16px; border-radius: 12px; background: var(--surface-2); font-size: 14px; color: var(--muted); }
+  .platforms { margin-top: 26px; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+  .tag { padding: 5px 12px; border-radius: 999px; font-size: 13.5px; font-weight: 650; background: var(--surface-2); color: var(--text); }
+  .tag.on { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
+
+  /* Ekran görüntüsü */
+  .shot { margin: 48px auto 0; max-width: 860px; border-radius: 16px; overflow: hidden; background: var(--surface);
+          box-shadow: 0 30px 80px rgba(0,0,0,.18), 0 0 0 1px var(--line); }
+  .shot .bar { height: 34px; display: flex; align-items: center; gap: 8px; padding: 0 14px; background: var(--surface-2); border-bottom: 1px solid var(--line); }
+  .shot .bar i { width: 12px; height: 12px; border-radius: 50%; background: #ff5f57; }
+  .shot .bar i:nth-child(2) { background: #febc2e; } .shot .bar i:nth-child(3) { background: #28c840; }
+
+  /* Özellikler */
+  .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 36px; }
+  .feature { padding: 22px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); }
+  .feature .ic { width: 42px; height: 42px; border-radius: 12px; background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent);
+                 display: grid; place-items: center; margin-bottom: 14px; }
+  .feature .ic svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .feature h3 { font-size: 17px; font-weight: 750; margin-bottom: 4px; }
+  .feature p { font-size: 15px; color: var(--muted); }
+
+  /* Adımlar */
+  .alt { background: var(--surface-2); }
+  .tabs { display: inline-flex; gap: 4px; padding: 4px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); margin: 28px 0 24px; }
+  .tabs button { font: inherit; font-weight: 700; font-size: 15px; padding: 8px 20px; border: 0; border-radius: 9px; background: none; color: var(--text); cursor: pointer; }
+  .tabs button[aria-selected="true"] { background: var(--grad); color: #fff; }
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; counter-reset: s; text-align: left; }
+  .step { position: relative; padding: 24px 20px 20px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); counter-increment: s; }
+  .step::before { content: counter(s); position: absolute; top: -14px; left: 20px; width: 30px; height: 30px; border-radius: 50%; background: var(--grad);
+                  color: #fff; font-weight: 800; display: grid; place-items: center; box-shadow: 0 4px 10px rgba(0,0,0,.15); }
+  .step h3 { font-size: 16.5px; font-weight: 750; margin-bottom: 4px; }
+  .step p { font-size: 15px; color: var(--muted); }
+  .step b { color: var(--text); }
+  .why { margin: 20px auto 0; max-width: 720px; font-size: 14.5px; color: var(--muted); }
+  [hidden] { display: none !important; }
+
+  /* SSS */
+  .faq { max-width: 760px; margin: 32px auto 0; display: flex; flex-direction: column; gap: 10px; }
+  details { border-radius: 14px; background: var(--surface); border: 1px solid var(--line); padding: 4px 20px; }
+  summary { cursor: pointer; font-weight: 700; padding: 14px 0; list-style: none; display: flex; justify-content: space-between; gap: 12px; }
+  summary::-webkit-details-marker { display: none; }
+  summary::after { content: "+"; color: var(--accent); font-size: 22px; line-height: 1; }
+  details[open] summary::after { content: "–"; }
+  details p { color: var(--muted); padding-bottom: 16px; font-size: 15px; }
+
+  footer { padding: 40px 0 56px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; text-align: center; }
+  footer .links { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 20px; margin-bottom: 12px; }
+  footer a { text-decoration: none; font-weight: 600; }
+  footer b { color: var(--text); }
+
+  @media (max-width: 820px) {
+    .features, .steps { grid-template-columns: 1fr; }
+    .steps { gap: 24px; }
+    section { padding: 56px 0; }
+  }
+  @media (max-width: 480px) {
+    .choice { grid-template-columns: 1fr; }
+    .btn { width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero center">
+  <div class="wrap">
+    <img src="icon.png" class="icon" alt="TİP Video İndirici simgesi" width="132" height="132">
+    <div class="kicker">TİP Propaganda Bürosu</div>
+    <h1>TİP Video İndirici</h1>
+    <p class="lead">YouTube, X (Twitter), Instagram ve 1000'den fazla siteden videoları ve sesleri <b>tek tıkla</b> indirin. Mac ve Windows için ücretsiz.</p>
+
+    <div class="download" id="download">
+      <!-- Ziyaretçinin bilgisayarına göre JavaScript doldurur; JavaScript kapalıysa bu bağlantılar görünür -->
+      <div class="choice">
+        <a class="btn" href="https://github.com/kerimcankara-git/tip-video-indirici/releases/latest/download/TIP-Video-Indirici-AppleSilicon.dmg"><span class="txt">Mac<small>Apple Silicon</small></span></a>
+        <a class="btn" href="https://github.com/kerimcankara-git/tip-video-indirici/releases/latest/download/TIP-Video-Indirici-Setup.exe"><span class="txt">Windows<small>10 / 11</small></span></a>
+      </div>
+    </div>
+    <div class="others" id="others"></div>
+
+    <div class="platforms" aria-label="Desteklenen siteler">
+      <span class="tag on">YouTube</span><span class="tag on">X (Twitter)</span><span class="tag on">Instagram</span>
+      <span class="tag">TikTok</span><span class="tag">Facebook</span><span class="tag">Vimeo</span><span class="tag">Reddit</span>
+      <span class="tag">Twitch</span><span class="tag">SoundCloud</span><span class="tag">+1000 site</span>
+    </div>
+
+    <div class="shot">
+      <div class="bar"><i></i><i></i><i></i></div>
+      <img src="screenshot.png" alt="TİP Video İndirici uygulamasının ekran görüntüsü: bağlantı alanı, video bilgisi, kalite seçimi ve İndir düğmesi" width="1640" height="1548" loading="lazy">
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="wrap center">
+    <h2>Kopyala, yapıştır, indir</h2>
+    <p class="lead">Teknik bilgi gerektirmez. Bağlantıyı kopyalayıp uygulamaya dönmeniz yeterli; gerisini uygulama halleder.</p>
+
+    <div class="features">
+      <div class="feature">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg></div>
+        <h3>Bağlantıyı kendisi bulur</h3>
+        <p>YouTube, X veya Instagram bağlantısını kopyalayıp uygulamaya döndüğünüzde otomatik algılanır.</p>
+      </div>
+      <div class="feature">
+        <div class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9 5 3-5 3z"/></svg></div>
+        <h3>4K'ya kadar video</h3>
+        <p>Kaliteyi siz seçersiniz. Videolar QuickTime, Premiere ve Final Cut'ın doğrudan açabileceği biçimde kaydedilir.</p>
+      </div>
+      <div class="feature">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
+        <h3>Sadece ses</h3>
+        <p>Konuşmaları, müzikleri MP3, M4A, WAV veya FLAC olarak indirin.</p>
+      </div>
+      <div class="feature">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg></div>
+        <h3>Aynı anda birden fazla</h3>
+        <p>İndirmeler bir listede ilerler; bir yandan yenilerini ekleyebilirsiniz.</p>
+      </div>
+      <div class="feature">
+        <div class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></div>
+        <h3>Şifre istemez</h3>
+        <p>Giriş gerektiren Instagram gönderileri için tarayıcınızdaki oturum kullanılır; uygulamaya şifre girmezsiniz.</p>
+      </div>
+      <div class="feature">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></div>
+        <h3>Tek tıkla güncel</h3>
+        <p>Siteler değiştiğinde indirme motoru uygulamanın içinden güncellenir; yeniden kurmanız gerekmez.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="alt" id="kurulum">
+  <div class="wrap center">
+    <h2>Kurulum</h2>
+    <p class="lead">Birkaç dakika sürer. İlk açılışta bir güvenlik uyarısı görmeniz normaldir.</p>
+
+    <div class="tabs" role="tablist">
+      <button role="tab" id="tab-mac" aria-selected="true" aria-controls="steps-mac">Mac</button>
+      <button role="tab" id="tab-win" aria-selected="false" aria-controls="steps-win">Windows</button>
+    </div>
+
+    <div class="steps" id="steps-mac" role="tabpanel" aria-labelledby="tab-mac">
+      <div class="step">
+        <h3>Uygulamalar'a sürükleyin</h3>
+        <p>İndirdiğiniz DMG dosyasını açın, uygulama simgesini <b>Applications</b> klasörüne sürükleyin.</p>
+      </div>
+      <div class="step">
+        <h3>Açın, “Bitti”ye basın</h3>
+        <p>Uygulamayı açın. “Apple doğrulayamadı” uyarısında <b>Bitti</b>'ye basın — <b>Çöp Sepetine Taşı</b>'ya değil.</p>
+      </div>
+      <div class="step">
+        <h3>“Yine de Aç”</h3>
+        <p><b>Sistem Ayarları › Gizlilik ve Güvenlik</b>'te en alta inip <b>Yine de Aç</b>'a basın ve Mac şifrenizi girin. Hepsi bu.</p>
+      </div>
+    </div>
+
+    <div class="steps" id="steps-win" role="tabpanel" aria-labelledby="tab-win" hidden>
+      <div class="step">
+        <h3>Kurulum dosyasını açın</h3>
+        <p>İndirdiğiniz <b>TIP-Video-Indirici-Setup.exe</b> dosyasına çift tıklayın.</p>
+      </div>
+      <div class="step">
+        <h3>“Yine de çalıştır”</h3>
+        <p>“Windows bilgisayarınızı korudu” uyarısı çıkarsa <b>Ek bilgi</b>'ye, ardından <b>Yine de çalıştır</b>'a basın.</p>
+      </div>
+      <div class="step">
+        <h3>Hazır</h3>
+        <p>Kurulum yönetici şifresi istemeden biter; uygulama açılır, masaüstüne kısayol eklenir.</p>
+      </div>
+    </div>
+
+    <p class="why">Bu uyarılar, uygulama henüz ücretli bir Apple / Microsoft geliştirici sertifikasıyla imzalanmadığı için çıkar. İzni bir kez verirsiniz; uygulamanın kaynak kodu bu sayfanın bağlı olduğu GitHub deposunda herkese açıktır.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2 class="center">Sık sorulanlar</h2>
+    <div class="faq">
+      <details>
+        <summary>Ücretli mi? Reklam var mı?</summary>
+        <p>Hayır. Uygulama tamamen ücretsizdir, reklam ve hesap açma yoktur.</p>
+      </details>
+      <details>
+        <summary>Mac'imde hangi çip var, hangi dosyayı indirmeliyim?</summary>
+        <p>Ekranın sol üstündeki elma menüsünden <b>Bu Mac Hakkında</b>'yı açın. “Çip: Apple M1/M2/M3/M4…” yazıyorsa <b>Apple Silicon</b>, “İşlemci: Intel” yazıyorsa <b>Intel</b> dosyasını indirin. En az macOS 13 (Ventura) gerekir.</p>
+      </details>
+      <details>
+        <summary>Hangi sitelerden indirebilirim?</summary>
+        <p>YouTube, X (Twitter) ve Instagram bağlantıları otomatik algılanır. TikTok, Facebook, Vimeo, Reddit, Twitch, SoundCloud ve 1000'den fazla siteyi de bağlantıyı yapıştırarak kullanabilirsiniz. <a href="https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md">Tam liste</a></p>
+      </details>
+      <details>
+        <summary>Instagram videosu inmiyor, “giriş gerekiyor” diyor.</summary>
+        <p>Tarayıcınızda Instagram'a giriş yapın, ardından uygulamanın alt çubuğundaki <b>Oturum</b> menüsünden o tarayıcıyı seçip tekrar deneyin. Windows'ta Firefox en sorunsuz seçenektir.</p>
+      </details>
+      <details>
+        <summary>Bir gün indirmeler çalışmayı bıraktı.</summary>
+        <p>Siteler sık değişir. Uygulamanın alt çubuğunun sağındaki <b>yt-dlp</b> sürüm numarasına tıklayarak indirme motorunu güncelleyin; genellikle bu yeterlidir.</p>
+      </details>
+      <details>
+        <summary>Telefonda çalışır mı?</summary>
+        <p>Hayır, uygulama Mac ve Windows bilgisayarlar içindir.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="links">
+      <a href="https://github.com/kerimcankara-git/tip-video-indirici/releases">Tüm sürümler</a>
+      <a href="https://github.com/kerimcankara-git/tip-video-indirici">Kaynak kod</a>
+      <a href="https://github.com/kerimcankara-git/tip-video-indirici/blob/main/LICENSE">MIT Lisansı</a>
+      <a href="https://github.com/kerimcankara-git/tip-video-indirici/blob/main/THIRD_PARTY_NOTICES.md">Üçüncü taraf lisanslar</a>
+    </div>
+    <p><b>TİP Propaganda Bürosu</b> tarafından üretilmiştir. Uygulamayı kullanırken yaşadığınız sorunları örgüt kanalıyla iletebilirsiniz.</p>
+    <p>Yalnızca indirme ve kullanma hakkınız olan içerikleri indirin.</p>
+  </div>
+</footer>
+
+<script>
+  const BASE = 'https://github.com/kerimcankara-git/tip-video-indirici/releases/latest/download/';
+  const FILES = {
+    arm: { href: BASE + 'TIP-Video-Indirici-AppleSilicon.dmg', title: 'Mac için indir', sub: 'Apple Silicon (M1–M4) · macOS 13+', short: 'Mac – Apple Silicon' },
+    intel: { href: BASE + 'TIP-Video-Indirici-Intel.dmg', title: 'Mac için indir', sub: 'Intel işlemcili Mac · macOS 13+', short: 'Mac – Intel' },
+    win: { href: BASE + 'TIP-Video-Indirici-Setup.exe', title: 'Windows için indir', sub: 'Windows 10 / 11 · 64 bit', short: 'Windows' },
+  };
+  const ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m-5-5 5 5 5-5M5 20h14"/></svg>';
+
+  const button = (f, cls = '') =>
+    `<a class="btn ${cls}" href="${f.href}">${ICON}<span class="txt">${f.title}<small>${f.sub}</small></span></a>`;
+
+  async function detect() {
+    const ua = navigator.userAgent;
+    if (/iPhone|iPad|iPod|Android/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) return 'mobile';
+    if (/Windows/i.test(ua)) return 'win';
+    if (!/Macintosh|Mac OS X/i.test(ua)) return 'other';
+    // Chrome/Edge işlemci türünü söyler
+    try {
+      const d = await navigator.userAgentData?.getHighEntropyValues(['architecture']);
+      if (d?.architecture) return d.architecture === 'arm' ? 'arm' : 'intel';
+    } catch {}
+    // Bazı tarayıcılar ekran kartının adını verir (Safari gizler)
+    try {
+      const gl = document.createElement('canvas').getContext('webgl');
+      const ext = gl.getExtension('WEBGL_debug_renderer_info');
+      const r = gl.getParameter(ext ? ext.UNMASKED_RENDERER_WEBGL : gl.RENDERER);
+      if (/Apple M\d/i.test(r)) return 'arm';
+      if (/Intel|AMD|Radeon|NVIDIA/i.test(r)) return 'intel';
+    } catch {}
+    return 'mac';
+  }
+
+  detect().then((kind) => {
+    const box = document.getElementById('download');
+    const others = document.getElementById('others');
+    const rest = (keys) => 'Diğer seçenekler: ' + keys.map((k) => `<a href="${FILES[k].href}">${FILES[k].short}</a>`).join(' · ');
+
+    if (FILES[kind]) {
+      box.innerHTML = button(FILES[kind]);
+      others.innerHTML = rest(Object.keys(FILES).filter((k) => k !== kind));
+      if (kind !== 'win') selectTab('mac'); else selectTab('win');
+    } else if (kind === 'mac') {
+      box.innerHTML = `<div class="choice">${button({ ...FILES.arm, title: 'Apple Silicon', sub: 'M1, M2, M3, M4…' })}${button({ ...FILES.intel, title: 'Intel', sub: 'Intel işlemcili Mac' }, 'secondary')}</div>
+        <p class="hint">Hangisi sizde? Elma menüsü › <b>Bu Mac Hakkında</b>: “Çip: Apple M…” yazıyorsa <b>Apple Silicon</b>.</p>`;
+      others.innerHTML = rest(['win']);
+    } else {
+      box.innerHTML = `<div class="choice">${button({ ...FILES.win, title: 'Windows' })}${button({ ...FILES.arm, title: 'Mac' , sub: 'Apple Silicon' })}</div>
+        ${kind === 'mobile' ? '<p class="note">Bu uygulama bilgisayar içindir. Bu sayfayı Mac veya Windows bilgisayarınızda açın.</p>' : ''}`;
+      others.innerHTML = rest(['intel']);
+    }
+  });
+
+  // Kurulum sekmeleri
+  function selectTab(which) {
+    for (const k of ['mac', 'win']) {
+      document.getElementById('tab-' + k).setAttribute('aria-selected', String(k === which));
+      document.getElementById('steps-' + k).hidden = k !== which;
+    }
+  }
+  document.getElementById('tab-mac').onclick = () => selectTab('mac');
+  document.getElementById('tab-win').onclick = () => selectTab('win');
+</script>
+</body>
+</html>
