@@ -37,21 +37,19 @@ struct VideoInfo: Decodable {
         Array(Set(usableFormats.filter(\.hasVideo).compactMap(\.height))).sorted(by: >)
     }
 
-    /// Kesim önizlemesi için uygulama içinde oynatılabilecek akış: tercihen sesli MP4 (≤720p),
-    /// yoksa sessiz H.264, o da yoksa HLS. Tek videolu gönderilerde kullanılır.
+    /// Kesim önizlemesi için uygulama içinde oynatılabilecek akış: tercihen sesli MP4 (≤720p), yoksa HLS
+    /// (tercihen H.264). YouTube'un sessiz DASH parçalarını AVPlayer açamadığı için onlar kullanılmaz.
     var previewFormat: VideoFormat? {
-        let playable = usableFormats.filter { f in
-            guard f.url != nil, f.hasVideo, let p = f.proto else { return false }
-            return p == "https" || p == "http" || p.hasPrefix("m3u8")
-        }
+        let playable = usableFormats.filter { $0.url != nil && $0.hasVideo && $0.proto != nil }
         func pick(_ list: [VideoFormat]) -> VideoFormat? {
             list.filter { ($0.height ?? 0) <= 720 }.max { ($0.height ?? 0) < ($1.height ?? 0) }
                 ?? list.min { ($0.height ?? 0) < ($1.height ?? 0) }
         }
-        let direct = playable.filter { $0.proto?.hasPrefix("http") == true && $0.ext == "mp4" }
-        return pick(direct.filter(\.hasAudio))
-            ?? pick(direct.filter { $0.vcodec?.hasPrefix("avc") == true })
-            ?? pick(playable.filter { $0.proto?.hasPrefix("m3u8") == true })
+        let muxed = playable.filter { $0.hasAudio && $0.ext == "mp4" && $0.proto?.hasPrefix("http") == true }
+        let hls = playable.filter { $0.proto?.hasPrefix("m3u8") == true }
+        return pick(muxed)
+            ?? pick(hls.filter { $0.vcodec?.hasPrefix("avc") == true })
+            ?? pick(hls)
     }
 }
 

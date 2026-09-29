@@ -201,6 +201,13 @@ function renderClip() {
   if (preview && video().getAttribute('src') !== preview) {
     video().src = preview;
     video().currentTime = state.clip.start;
+    // Bazı akışlar ne açılır ne hata verir; 10 sn içinde yüklenmezse "önizleme açılamadı"ya geç
+    setTimeout(() => {
+      if (video().getAttribute('src') === preview && video().readyState < 1) {
+        video().dataset.failed = '1';
+        renderClip();
+      }
+    }, 10000);
   }
   $('player').classList.toggle('hidden', !preview || video().dataset.failed === '1');
   $('noPreview').classList.toggle('hidden', !!preview && video().dataset.failed !== '1');

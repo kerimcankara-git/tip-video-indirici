@@ -36,6 +36,11 @@ final class ClipPlayer: ObservableObject {
             DispatchQueue.main.async { self?.failed = item.status == .failed }
         }
         player.replaceCurrentItem(with: item)
+        // Bazı akışlar ne açılır ne hata verir; 10 sn içinde hazır olmazsa "önizleme açılamadı"ya geç
+        DispatchQueue.main.asyncAfter(deadline: .now() + 10) { [weak self, weak item] in
+            guard let self, let item, self.player.currentItem === item, item.status != .readyToPlay else { return }
+            self.failed = true
+        }
     }
 
     func seek(_ t: Double) {

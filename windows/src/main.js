@@ -220,9 +220,13 @@ async function download(job, req) {
     const f = req.format;
     args.push('-f', f.vcodec && !f.acodec ? `${f.id}+bestaudio` : f.id);
   }
+  const clipLength = req.clip ? req.clip[1] - req.clip[0] : 0;
   if (req.clip) {
-    // Sadece seçilen aralık indirilir; kesimler tam saniyeden olsun diye uçlar yeniden kodlanır
-    args.push('--download-sections', `*${req.clip[0]}-${req.clip[1]}`, '--force-keyframes-at-cuts');
+    // Sadece seçilen aralık indirilir; kesimler tam saniyeden olsun diye uçlar yeniden kodlanır.
+    // Bu indirmeyi ffmpeg yapar ve yt-dlp'ye ilerleme bildirmez; ilerlemeyi ffmpeg'in kendisinden okuruz.
+    args.push('--download-sections', `*${req.clip[0]}-${req.clip[1]}`, '--force-keyframes-at-cuts',
+      '--downloader-args', 'ffmpeg:-progress pipe:1 -nostats');
+    update(job, { indeterminate: true, detail: 'Kesit hazırlanıyor…' });
   }
   args.push(...cookieArgs(req.cookies), req.url);
 
@@ -233,7 +237,14 @@ async function download(job, req) {
     r = await run(tools.ytdlp, args, {
       onStart: (p) => { job.proc = p; },
       onLine: (line) => {
-        if (line.startsWith('[P]')) {
+        if (line.startsWith('out_time_us=') && clipLength > 0) {
+          // Kesit indirirken ffmpeg'in ilerlemesi (-progress pipe:1)
+          const us = Number(line.slice(12));
+          if (Number.isNaN(us)) return;
+          const progress = Math.min(0.999, Math.max(0, us / 1e6 / clipLength));
+          update(job, { phase: 'downloading', indeterminate: false, progress,
+            detail: `Kesit indiriliyor… %${Math.round(progress * 100)}` });
+        } else if (line.startsWith('[P]')) {
           const [done, total, estimate, speed, eta] = line.slice(3).split('|').map(Number);
           if (Number.isNaN(done)) return;
           const t = total || estimate;

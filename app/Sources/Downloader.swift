@@ -86,9 +86,14 @@ enum Downloader {
             args += ["-f", f.hasVideo && !f.hasAudio ? "\(f.format_id)+bestaudio" : f.format_id]
         }
         if let clip = req.clip {
-            // Sadece seçilen aralık indirilir; kesimler tam saniyeden olsun diye uçlar yeniden kodlanır
-            args += ["--download-sections", "*\(clip.lowerBound)-\(clip.upperBound)", "--force-keyframes-at-cuts"]
+            // Sadece seçilen aralık indirilir; kesimler tam saniyeden olsun diye uçlar yeniden kodlanır.
+            // Bu indirmeyi ffmpeg yapar ve yt-dlp'ye ilerleme bildirmez; ilerlemeyi ffmpeg'in kendisinden okuruz.
+            args += ["--download-sections", "*\(clip.lowerBound)-\(clip.upperBound)", "--force-keyframes-at-cuts",
+                     "--downloader-args", "ffmpeg:-progress pipe:1 -nostats"]
+            job.indeterminate = true
+            job.detail = "Kesit hazırlanıyor…"
         }
+        let clipLength = req.clip.map { $0.upperBound - $0.lowerBound }
         args += cookieArgs(req.cookiesBrowser)
         args.append(req.url)
 
@@ -96,7 +101,7 @@ enum Downloader {
         let result: Runner.Result
         do {
             result = try await Runner.run(Tools.ytdlp, args, started: { job.process = $0 }) { line in
-                handle(line, job: job, outputs: &outputs)
+                handle(line, job: job, outputs: &outputs, clipLength: clipLength)
             }
         } catch {
             return fail(job, error.localizedDescription)
@@ -158,8 +163,15 @@ enum Downloader {
     }
 
     @MainActor
-    private static func handle(_ line: String, job: DownloadJob, outputs: inout [Output]) {
-        if line.hasPrefix("[P]") {
+    private static func handle(_ line: String, job: DownloadJob, outputs: inout [Output], clipLength: Double?) {
+        if line.hasPrefix("out_time_us="), let clipLength, clipLength > 0 {
+            // Kesit indirirken ffmpeg'in ilerlemesi (-progress pipe:1)
+            guard let us = Double(line.dropFirst("out_time_us=".count)) else { return }
+            job.phase = .downloading
+            job.indeterminate = false
+            job.progress = min(0.999, max(0, us / 1e6 / clipLength))
+            job.detail = "Kesit indiriliyor… %\(Int(job.progress * 100))"
+        } else if line.hasPrefix("[P]") {
             let p = line.dropFirst(3).split(separator: "|", omittingEmptySubsequences: false).map { Double($0) }
             guard p.count == 5, let done = p[0] else { return }
             let total = p[1] ?? p[2]
