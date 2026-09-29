@@ -259,8 +259,9 @@ EOF
 }
 
 fetch_tools
-rm -f build/*.dmg   # eski adlandırmayla (işlemci türü olmadan) kalmış DMG'ler
 for id in "${BRANDS[@]}"; do
+  # Bu kurumun eski adlandırmayla (işlemci türü olmadan) kalmış DMG'si; diğer kurumlarınkine dokunulmaz
+  ( source "brands/$id/brand.conf"; rm -f "build/$DMG_NAME.dmg" )
   prepare_brand "$id"
   for arch in "${ARCHS[@]}"; do
     build_arch "$id" "$arch"
