@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy"
-      content="default-src 'self'; img-src 'self' https: data:; style-src 'self' 'unsafe-inline'; font-src 'self' data:">
+      content="default-src 'self'; img-src 'self' https: data:; media-src https:; style-src 'self' 'unsafe-inline'; font-src 'self' data:">
 <title></title>
 <link rel="stylesheet" href="styles.css">
 </head>
@@ -69,6 +69,45 @@
         <div data-panel="custom" class="hidden">
           <p class="small muted">Bir format seç. Sadece video içeren formatlara en iyi ses otomatik eklenir.</p>
           <div class="format-table" id="formatTable"></div>
+        </div>
+      </div>
+
+      <!-- Kesim: sadece seçilen aralığı indir -->
+      <div class="card clip" id="clipCard">
+        <label class="clip-toggle">
+          <span>
+            <b>✂ Sadece bir kısmını indir</b>
+            <small>Başlangıç ve bitişi seç; yalnızca o aralık indirilir.</small>
+          </span>
+          <input type="checkbox" id="clipEnabled" role="switch">
+          <span class="switch" aria-hidden="true"></span>
+        </label>
+
+        <div id="clipBody" class="clip-body hidden">
+          <div class="player" id="player">
+            <video id="clipVideo" preload="metadata" playsinline></video>
+            <span id="clipNow" class="now">0:00</span>
+          </div>
+          <div id="noPreview" class="hint hidden">Bu video için önizleme açılamadı. Başlangıç ve bitişi zaman olarak yazabilirsin.</div>
+
+          <div class="timeline" id="timeline">
+            <div class="track"></div>
+            <div class="range" id="clipRange"></div>
+            <div class="playhead" id="playhead"></div>
+            <div class="handle" id="handleStart" title="Başlangıç"></div>
+            <div class="handle" id="handleEnd" title="Bitiş"></div>
+          </div>
+
+          <div class="clip-controls">
+            <label class="time"><span>Başlangıç</span><input id="clipStart" type="text" inputmode="decimal" title="Örnek: 1:23 ya da 1:02:03"></label>
+            <button type="button" class="pill" id="startNow" title="Başlangıcı oynatıcının şu anki konumu yap">Şu an</button>
+            <span class="spacer"></span>
+            <button type="button" class="pill filled" id="playRange">▶ Seçimi oynat</button>
+            <span class="spacer"></span>
+            <button type="button" class="pill" id="endNow" title="Bitişi oynatıcının şu anki konumu yap">Şu an</button>
+            <label class="time"><span>Bitiş</span><input id="clipEnd" type="text" inputmode="decimal" title="Örnek: 1:23 ya da 1:02:03"></label>
+          </div>
+          <p class="small muted" id="clipSummary"></p>
         </div>
       </div>
 
@@ -140,6 +179,20 @@
             <li><b>Sadece Ses:</b> MP3, M4A, WAV, FLAC veya OPUS; kayıplı formatlarda bit hızını seçebilirsin.</li>
             <li><b>Gelişmiş:</b> Sitenin sunduğu tüm formatları listeler; belirli bir formatı seçmek için.</li>
             <li>Bir gönderide birden fazla video varsa (ör. tweet, Instagram carousel) hepsi indirilir.</li>
+          </ul>
+        </section>
+
+        <section class="hsec">
+          <h3><span>✂</span> Videonun bir kısmını indirme</h3>
+          <p>Uzun bir videonun sadece bir bölümüne ihtiyacın varsa tamamını indirmen gerekmez.</p>
+          <ol>
+            <li>Seçeneklerin altındaki <b>Sadece bir kısmını indir</b> anahtarını aç; video önizlemesi görünür.</li>
+            <li>Zaman çizelgesindeki iki tutamacı sürükleyerek başlangıcı ve bitişi seç. İstersen <b>1:23</b> gibi elle yaz ya da oynatıcıyı istediğin yere getirip <b>Şu an</b>'a bas.</li>
+            <li><b>Seçimi oynat</b> ile kontrol et, sonra <b>İndir</b>. Aralık dosya adına eklenir, ör. <i>(1.23-2.45)</i>.</li>
+          </ol>
+          <ul>
+            <li>Kesimler tam seçtiğin saniyeden yapılır; bu yüzden kesilen parçanın indirilmesi biraz daha uzun sürebilir.</li>
+            <li>Birden fazla video içeren gönderilerde ve canlı yayınlarda bu seçenek görünmez.</li>
           </ul>
         </section>
 

@@ -36,6 +36,7 @@ struct HelpView: View {
                     quickStart
                     platforms
                     modes
+                    clip
                     session
                     folder
                     update
@@ -88,6 +89,17 @@ struct HelpView: View {
             Bullet("**Sadece Ses:** MP3, M4A, WAV, FLAC veya OPUS; kayıplı formatlarda bit hızını seçebilirsin.")
             Bullet("**Gelişmiş:** Sitenin sunduğu tüm formatları listeler; belirli bir formatı seçmek için.")
             Bullet("Bir gönderide birden fazla video varsa (ör. tweet, Instagram carousel) hepsi indirilir.")
+        }
+    }
+
+    private var clip: some View {
+        HelpSection(icon: "scissors", title: "Videonun bir kısmını indirme") {
+            Text("Uzun bir videonun sadece bir bölümüne ihtiyacın varsa tamamını indirmen gerekmez.")
+            Step(1, "Seçeneklerin altındaki **Sadece bir kısmını indir** anahtarını aç; video önizlemesi görünür.")
+            Step(2, "Zaman çizelgesindeki iki tutamacı sürükleyerek başlangıcı ve bitişi seç. İstersen **1:23** gibi elle yaz ya da oynatıcıyı istediğin yere getirip **Şu an**'a bas.")
+            Step(3, "**Seçimi oynat** ile kontrol et, sonra **İndir**. Aralık dosya adına eklenir, ör. *(1.23-2.45)*.")
+            Bullet("Kesimler tam seçtiğin saniyeden yapılır; bu yüzden kesilen parçanın indirilmesi biraz daha uzun sürebilir.")
+            Bullet("Birden fazla video içeren gönderilerde ve canlı yayınlarda bu seçenek görünmez.")
         }
     }
 

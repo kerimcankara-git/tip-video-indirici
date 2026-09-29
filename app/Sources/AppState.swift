@@ -17,6 +17,11 @@ final class AppState: ObservableObject {
     @Published var audioFormat = "mp3"
     @Published var audioQuality = 192
     @Published var customFormat: VideoFormat?
+
+    // Kesim: sadece seçilen aralığı indir
+    @Published var clipEnabled = false
+    @Published var clipStart: Double = 0
+    @Published var clipEnd: Double = 0
     /// Instagram / X gibi giriş gerektiren içerikler için yt-dlp'nin çerezleri okuyacağı tarayıcı
     @Published var cookiesBrowser: String {
         didSet { UserDefaults.standard.set(cookiesBrowser, forKey: "cookiesBrowser") }
@@ -79,6 +84,9 @@ final class AppState: ObservableObject {
                 fetchedURL = url
                 customFormat = nil
                 if let h = height, !result.heights.contains(h) { height = nil }
+                clipEnabled = false
+                clipStart = 0
+                clipEnd = result.displayDuration ?? 0
             } catch {
                 info = nil
                 fetchError = error.localizedDescription
@@ -119,7 +127,13 @@ final class AppState: ObservableObject {
     // MARK: İndirme
 
     var canDownload: Bool {
-        info != nil && (mode != .custom || customFormat != nil)
+        info != nil && (mode != .custom || customFormat != nil) && (!clipEnabled || clipEnd - clipStart >= 0.5)
+    }
+
+    /// Kesim yalnızca süresi bilinen, tek videolu içeriklerde sunulur (canlı yayın / çok videolu gönderi hariç)
+    var clipAvailable: Bool {
+        guard let info else { return false }
+        return info.videoCount == 1 && (info.displayDuration ?? 0) >= 2
     }
 
     var willConvert: Bool {
@@ -135,8 +149,10 @@ final class AppState: ObservableObject {
         req.audioQuality = audioQuality
         req.format = customFormat
         req.cookiesBrowser = cookiesBrowser
+        if clipEnabled, clipAvailable { req.clip = clipStart...clipEnd }
 
         var summary = req.summary
+        if let clip = req.clip { summary += " · ✂︎ \(formatClock(clip.lowerBound))–\(formatClock(clip.upperBound))" }
         if info.videoCount > 1 { summary += " · \(info.videoCount) video" }
         let job = DownloadJob(title: info.displayTitle, thumbnail: info.displayThumbnail.flatMap(URL.init(string:)),
                               summary: summary)

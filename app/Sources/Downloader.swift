@@ -13,6 +13,8 @@ final class DownloadJob: ObservableObject, Identifiable {
     @Published var progress: Double = 0
     @Published var detail = "Başlatılıyor…"
     @Published var fileURL: URL?
+    /// Toplam boyut bilinmiyorsa (ör. bölüm indirirken) ilerleme çubuğu belirsiz gösterilir
+    @Published var indeterminate = false
 
     fileprivate var process: Process?
     fileprivate var cancelled = false
@@ -59,7 +61,7 @@ enum Downloader {
             "--js-runtimes", "deno:\(Tools.deno.path)",
             "--ffmpeg-location", Tools.ffmpeg.path,
             // Tweet metinleri uzun olabiliyor; dosya adı sınırını aşmasın
-            "-P", dir.path, "-o", "%(title).120B [%(id)s].%(ext)s",
+            "-P", dir.path, "-o", outputTemplate(req.clip),
             "--progress-template", "download:[P]%(progress.downloaded_bytes)s|%(progress.total_bytes)s|%(progress.total_bytes_estimate)s|%(progress.speed)s|%(progress.eta)s",
             "--progress-template", "postprocess:[PP]%(progress.postprocessor)s",
             "--print", "after_move:[F]%(filepath)s",
@@ -83,6 +85,10 @@ enum Downloader {
             guard let f = req.format else { return }
             args += ["-f", f.hasVideo && !f.hasAudio ? "\(f.format_id)+bestaudio" : f.format_id]
         }
+        if let clip = req.clip {
+            // Sadece seçilen aralık indirilir; kesimler tam saniyeden olsun diye uçlar yeniden kodlanır
+            args += ["--download-sections", "*\(clip.lowerBound)-\(clip.upperBound)", "--force-keyframes-at-cuts"]
+        }
         args += cookieArgs(req.cookiesBrowser)
         args.append(req.url)
 
@@ -103,8 +109,11 @@ enum Downloader {
 
         if req.mode == .video, req.container == "mp4" {
             for (i, out) in outputs.enumerated() {
-                let needsVideo = !out.video.isEmpty && out.video != "none" && !macVideo.contains { out.video.hasPrefix($0) }
-                let needsAudio = !out.audio.isEmpty && out.audio != "none" && !macAudio.contains { out.audio.hasPrefix($0) }
+                // Dosyanın gerçek codec'ine bakılır (kesilen parçalar yeniden kodlanmış olabilir)
+                let probed = await probe(out.url)
+                let video = probed.video ?? out.video, audio = probed.audio ?? out.audio
+                let needsVideo = !video.isEmpty && video != "none" && !macVideo.contains { video.hasPrefix($0) }
+                let needsAudio = !audio.isEmpty && audio != "none" && !macAudio.contains { audio.hasPrefix($0) }
                 guard needsVideo || needsAudio else { continue }
                 let label = outputs.count > 1 ? " (\(i + 1)/\(outputs.count))" : ""
                 await convert(job, out.url, video: needsVideo, audio: needsAudio, duration: out.duration, label: label)
@@ -124,6 +133,25 @@ enum Downloader {
         var video = "", audio = "", duration: Double = 0
     }
 
+    /// Kesilen parçalarda aralık dosya adına eklenir: "Başlık [id] (1.23-2.45).mp4"
+    private static func outputTemplate(_ clip: ClosedRange<Double>?) -> String {
+        guard let clip else { return "%(title).120B [%(id)s].%(ext)s" }
+        let label = [clip.lowerBound, clip.upperBound].map { formatClock($0).replacingOccurrences(of: ":", with: ".") }
+        return "%(title).100B [%(id)s] (\(label[0])-\(label[1])).%(ext)s"
+    }
+
+    /// ffmpeg ile dosyadaki video ve ses codec'lerini okur (ör. "h264", "av1", "opus")
+    private static func probe(_ url: URL) async -> (video: String?, audio: String?) {
+        guard let r = try? await Runner.run(Tools.ffmpeg, ["-hide_banner", "-i", url.path]) else { return (nil, nil) }
+        func codec(_ kind: String) -> String? {
+            guard let re = try? NSRegularExpression(pattern: "Stream #[^\\n]*?: \(kind): ([A-Za-z0-9_]+)"),
+                  let m = re.firstMatch(in: r.stderr, range: NSRange(r.stderr.startIndex..., in: r.stderr)),
+                  let range = Range(m.range(at: 1), in: r.stderr) else { return nil }
+            return String(r.stderr[range])
+        }
+        return (codec("Video"), codec("Audio"))
+    }
+
     private static func cookieArgs(_ browser: String?) -> [String] {
         guard let browser, !browser.isEmpty else { return [] }
         return ["--cookies-from-browser", browser]
@@ -136,13 +164,21 @@ enum Downloader {
             guard p.count == 5, let done = p[0] else { return }
             let total = p[1] ?? p[2]
             job.phase = .downloading
-            if let total, total > 0 { job.progress = min(1, done / total) }
-            var parts = ["%\(Int(job.progress * 100))"]
+            var parts: [String]
+            if let total, total > 0 {
+                job.indeterminate = false
+                job.progress = min(1, done / total)
+                parts = ["%\(Int(job.progress * 100))"]
+            } else {
+                job.indeterminate = true
+                parts = [formatBytes(done)]
+            }
             if let speed = p[3] { parts.append(formatBytes(speed) + "/sn") }
             if let eta = p[4] { parts.append(formatDuration(eta) + " kaldı") }
             job.detail = parts.joined(separator: " · ")
         } else if line.hasPrefix("[PP]") {
             job.phase = .processing
+            job.indeterminate = false
             let names = ["Merger": "Video ve ses birleştiriliyor…", "ExtractAudio": "Ses dönüştürülüyor…"]
             job.detail = names[String(line.dropFirst(4))] ?? "İşleniyor…"
         } else if line.hasPrefix("[F]") {
@@ -165,6 +201,7 @@ enum Downloader {
                                 duration: Double, label: String) async {
         let tmp = src.deletingPathExtension().appendingPathExtension("converting.mp4")
         job.phase = .converting
+        job.indeterminate = false
         job.progress = 0
         job.detail = "Mac uyumlu formata dönüştürülüyor\(label)…"
 

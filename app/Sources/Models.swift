@@ -36,6 +36,23 @@ struct VideoInfo: Decodable {
     var heights: [Int] {
         Array(Set(usableFormats.filter(\.hasVideo).compactMap(\.height))).sorted(by: >)
     }
+
+    /// Kesim önizlemesi için uygulama içinde oynatılabilecek akış: tercihen sesli MP4 (≤720p),
+    /// yoksa sessiz H.264, o da yoksa HLS. Tek videolu gönderilerde kullanılır.
+    var previewFormat: VideoFormat? {
+        let playable = usableFormats.filter { f in
+            guard f.url != nil, f.hasVideo, let p = f.proto else { return false }
+            return p == "https" || p == "http" || p.hasPrefix("m3u8")
+        }
+        func pick(_ list: [VideoFormat]) -> VideoFormat? {
+            list.filter { ($0.height ?? 0) <= 720 }.max { ($0.height ?? 0) < ($1.height ?? 0) }
+                ?? list.min { ($0.height ?? 0) < ($1.height ?? 0) }
+        }
+        let direct = playable.filter { $0.proto?.hasPrefix("http") == true && $0.ext == "mp4" }
+        return pick(direct.filter(\.hasAudio))
+            ?? pick(direct.filter { $0.vcodec?.hasPrefix("avc") == true })
+            ?? pick(playable.filter { $0.proto?.hasPrefix("m3u8") == true })
+    }
 }
 
 struct VideoFormat: Decodable, Identifiable, Hashable {
@@ -49,6 +66,14 @@ struct VideoFormat: Decodable, Identifiable, Hashable {
     let filesize: Double?
     let filesize_approx: Double?
     let format_note: String?
+    let url: String?
+    let proto: String?
+    let http_headers: [String: String]?
+
+    enum CodingKeys: String, CodingKey {
+        case format_id, ext, height, fps, vcodec, acodec, abr, filesize, filesize_approx, format_note, url, http_headers
+        case proto = "protocol"
+    }
 
     var id: String { format_id }
     var hasVideo: Bool { vcodec != nil && vcodec != "none" }
@@ -87,6 +112,7 @@ struct DownloadRequest {
     var audioQuality = 192
     var format: VideoFormat?
     var cookiesBrowser: String?   // giriş gerektiren içerikler için tarayıcı oturumu
+    var clip: ClosedRange<Double>?  // yalnızca bu aralığı indir (saniye)
 
     var summary: String {
         switch mode {
@@ -108,6 +134,26 @@ func qualityLabel(_ h: Int) -> String {
 }
 
 func lossless(_ format: String) -> Bool { ["wav", "flac"].contains(format) }
+
+/// "1:23", "1:02:03", "83", "1:23,5" → saniye
+func parseClock(_ text: String) -> Double? {
+    let parts = text.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")
+        .split(separator: ":", omittingEmptySubsequences: false)
+    guard (1...3).contains(parts.count) else { return nil }
+    var total = 0.0
+    for part in parts {
+        guard let v = Double(part), v >= 0 else { return nil }
+        total = total * 60 + v
+    }
+    return total
+}
+
+/// Saniye → "1:23" / "1:02:03"; kesirliyse "1:23,5"
+func formatClock(_ s: Double) -> String {
+    let base = formatDuration(s.rounded(.down))
+    let tenths = Int(((s - s.rounded(.down)) * 10).rounded())
+    return tenths > 0 && tenths < 10 ? "\(base),\(tenths)" : base
+}
 
 func formatBytes(_ b: Double?) -> String {
     guard let b, b > 0 else { return "—" }

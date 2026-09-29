@@ -1,6 +1,6 @@
 // Ana süreç: pencere, yt-dlp / ffmpeg çalıştırma, indirme işleri.
 // Mac sürümündeki (app/Sources) mantığın Windows karşılığı; geliştirme sırasında macOS'ta da çalışır.
-const { app, BrowserWindow, ipcMain, shell, clipboard, dialog, Menu, nativeTheme } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, clipboard, dialog, Menu, nativeTheme, session } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
@@ -84,6 +84,35 @@ function errorMessage(stderr, fallback) {
 
 const cookieArgs = (browser) => (browser ? ['--cookies-from-browser', browser] : []);
 
+// Önizleme akışının istediği başlıklar (ör. YouTube User-Agent'a bakar); video isteklerine eklenir
+let previewHeaders = null;
+function installPreviewHeaders() {
+  session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
+    const h = details.requestHeaders;
+    if (previewHeaders && details.resourceType === 'media' && details.url.startsWith(previewHeaders.origin)) {
+      for (const [k, v] of Object.entries(previewHeaders.headers)) h[k] = v;
+    }
+    callback({ requestHeaders: h });
+  });
+}
+
+/** "1:23" / "1:02:03" (kesirli ise ",5") */
+const clock = (s) => {
+  const whole = Math.floor(s), tenth = Math.round((s - whole) * 10);
+  const h = Math.floor(whole / 3600), m = Math.floor(whole / 60) % 60, sec = String(whole % 60).padStart(2, '0');
+  const base = h ? `${h}:${String(m).padStart(2, '0')}:${sec}` : `${m}:${sec}`;
+  return tenth > 0 && tenth < 10 ? `${base},${tenth}` : base;
+};
+
+/** ffmpeg ile dosyadaki video/ses codec'ini okur (kesilen parçalar yeniden kodlanmış olabilir) */
+async function probe(file) {
+  try {
+    const r = await run(tools.ffmpeg, ['-hide_banner', '-i', file]);
+    const find = (kind) => (r.stderr.match(new RegExp(`Stream #.*?: ${kind}: ([A-Za-z0-9_]+)`)) || [])[1];
+    return { video: find('Video'), audio: find('Audio') };
+  } catch { return {}; }
+}
+
 // --- Video bilgisi -------------------------------------------------------------
 
 async function fetchInfo(url, cookies) {
@@ -101,6 +130,18 @@ async function fetchInfo(url, cookies) {
       abr: f.abr, size: f.filesize || f.filesize_approx,
     }))
     .filter((f) => f.vcodec || f.acodec);
+  // Kesim önizlemesi: tercihen sesli MP4 (≤720p), yoksa sessiz H.264.
+  // HTML5 video HLS oynatamadığı için yalnızca doğrudan (http/https) akışlar kullanılır.
+  const direct = (primary.formats || []).filter((f) => f.url && /^https?$/.test(f.protocol || '')
+    && f.ext === 'mp4' && f.vcodec && f.vcodec !== 'none');
+  const pick = (list) => list.filter((f) => (f.height || 0) <= 720).sort((a, b) => (b.height || 0) - (a.height || 0))[0]
+    || list.sort((a, b) => (a.height || 0) - (b.height || 0))[0];
+  const previewFormat = pick(direct.filter((f) => f.acodec && f.acodec !== 'none'))
+    || pick(direct.filter((f) => /^avc/.test(f.vcodec)));
+  previewHeaders = previewFormat
+    ? { origin: new URL(previewFormat.url).origin, headers: previewFormat.http_headers || {} }
+    : null;
+
   const platforms = { Youtube: 'YouTube', Twitter: 'X (Twitter)', Instagram: 'Instagram' };
   const key = info.extractor_key || primary.extractor_key;
   return {
@@ -110,6 +151,7 @@ async function fetchInfo(url, cookies) {
     thumbnail: info.thumbnail || primary.thumbnail,
     platform: platforms[key] || key,
     videoCount: info.entries?.length || 1,
+    preview: previewFormat?.url || null,
     heights: [...new Set(formats.filter((f) => f.vcodec && f.height).map((f) => f.height))].sort((a, b) => b - a),
     formats,
   };
@@ -153,7 +195,10 @@ async function download(job, req) {
   const args = [
     '--no-playlist', '--no-warnings', '--newline', '--progress', '--no-simulate', '--no-mtime',
     '--js-runtimes', `deno:${tools.deno}`, '--ffmpeg-location', tools.ffmpeg,
-    '-P', dir, '-o', '%(title).120B [%(id)s].%(ext)s',
+    // Kesilen parçalarda aralık dosya adına eklenir: "Başlık [id] (1.23-2.45).mp4"
+    '-P', dir, '-o', req.clip
+      ? `%(title).100B [%(id)s] (${req.clip.map((t) => clock(t).replace(/:/g, '.')).join('-')}).%(ext)s`
+      : '%(title).120B [%(id)s].%(ext)s',
     '--progress-template', 'download:[P]%(progress.downloaded_bytes)s|%(progress.total_bytes)s|%(progress.total_bytes_estimate)s|%(progress.speed)s|%(progress.eta)s',
     '--progress-template', 'postprocess:[PP]%(progress.postprocessor)s',
     '--print', 'after_move:[F]%(filepath)s',
@@ -171,6 +216,10 @@ async function download(job, req) {
     const f = req.format;
     args.push('-f', f.vcodec && !f.acodec ? `${f.id}+bestaudio` : f.id);
   }
+  if (req.clip) {
+    // Sadece seçilen aralık indirilir; kesimler tam saniyeden olsun diye uçlar yeniden kodlanır
+    args.push('--download-sections', `*${req.clip[0]}-${req.clip[1]}`, '--force-keyframes-at-cuts');
+  }
   args.push(...cookieArgs(req.cookies), req.url);
 
   const outputs = [];
@@ -185,12 +234,13 @@ async function download(job, req) {
           if (Number.isNaN(done)) return;
           const t = total || estimate;
           const progress = t ? Math.min(1, done / t) : job.state.progress;
-          const parts = [`%${Math.round(progress * 100)}`];
+          // Toplam boyut bilinmiyorsa (ör. bölüm indirirken) ilerleme çubuğu belirsiz gösterilir
+          const parts = [t ? `%${Math.round(progress * 100)}` : formatBytes(done)];
           if (speed) parts.push(`${formatBytes(speed)}/sn`);
           if (!Number.isNaN(eta)) parts.push(`${formatDuration(eta)} kaldı`);
-          update(job, { phase: 'downloading', progress, detail: parts.join(' · ') });
+          update(job, { phase: 'downloading', progress, indeterminate: !t, detail: parts.join(' · ') });
         } else if (line.startsWith('[PP]')) {
-          update(job, { phase: 'processing', detail: names[line.slice(4)] || 'İşleniyor…' });
+          update(job, { phase: 'processing', indeterminate: false, detail: names[line.slice(4)] || 'İşleniyor…' });
         } else if (line.startsWith('[F]')) {
           outputs.push({ file: line.slice(3) });
           update(job, { file: line.slice(3) });
@@ -211,8 +261,11 @@ async function download(job, req) {
   // Premiere / Windows oynatıcılarının sorunsuz açtığı codec'ler; AV1/VP9 → H.264, Opus → AAC
   if (req.mode === 'video' && req.container === 'mp4') {
     for (const [i, out] of outputs.entries()) {
-      const needsVideo = out.video && out.video !== 'none' && !/^(avc|h264|hev|hvc)/.test(out.video);
-      const needsAudio = out.audio && out.audio !== 'none' && !/^(mp4a|aac|mp3)/.test(out.audio);
+      // Dosyanın gerçek codec'ine bakılır (kesilen parçalar yeniden kodlanmış olabilir)
+      const probed = await probe(out.file);
+      const video = probed.video || out.video, audio = probed.audio || out.audio;
+      const needsVideo = video && video !== 'none' && !/^(avc|h264|hev|hvc)/.test(video);
+      const needsAudio = audio && audio !== 'none' && !/^(mp4a|aac|mp3)/.test(audio);
       if (!needsVideo && !needsAudio) continue;
       const label = outputs.length > 1 ? ` (${i + 1}/${outputs.length})` : '';
       const ok = await convert(job, out, needsVideo, needsAudio, label);
@@ -240,7 +293,7 @@ async function convert(job, out, video, audio, label) {
   const src = out.file;
   const tmp = src.replace(/\.[^.]+$/, '.converting.mp4');
   for (const [name, ...opts] of video ? encoders : [[null]]) {
-    update(job, { phase: 'converting', progress: 0, detail: `Uyumlu formata dönüştürülüyor${label}…` });
+    update(job, { phase: 'converting', progress: 0, indeterminate: false, detail: `Uyumlu formata dönüştürülüyor${label}…` });
     const args = ['-y', '-v', 'error', '-i', src, '-map', '0:v:0?', '-map', '0:a:0?',
       ...(video ? ['-c:v', name, ...opts, '-pix_fmt', 'yuv420p'] : ['-c:v', 'copy']),
       ...(audio ? ['-c:a', 'aac', '-b:a', '192k'] : ['-c:a', 'copy']),
@@ -368,6 +421,7 @@ if (!app.requestSingleInstanceLock()) app.quit();
 app.on('second-instance', () => { if (win) { win.isMinimized() && win.restore(); win.focus(); } });
 app.whenReady().then(() => {
   if (isWin) Menu.setApplicationMenu(null);
+  installPreviewHeaders();
   createWindow();
 });
 app.on('window-all-closed', () => app.quit());

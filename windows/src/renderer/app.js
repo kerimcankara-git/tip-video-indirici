@@ -16,6 +16,7 @@ const state = {
   info: null, fetchedURL: '', fetching: false, toolsReady: false,
   mode: 'video', height: null, container: 'mp4', audioFormat: 'mp3', audioQuality: 192, format: null,
   jobs: new Map(), downloadsDir: '', lastClipboard: '',
+  clip: { enabled: false, start: 0, end: 0, stopAt: null },   // sadece seçilen aralığı indir
 };
 
 // --- Yardımcılar ------------------------------------------------------------------
@@ -64,6 +65,7 @@ async function fetchInfo() {
     state.fetchedURL = url;
     state.format = null;
     if (state.height && !state.info.heights.includes(state.height)) state.height = null;
+    resetClip();
   } catch (e) {
     state.info = null;
     const msg = String(e.message || e).replace(/^Error invoking remote method '[^']+': (Error: )?/, '');
@@ -110,15 +112,18 @@ function summary() {
 function startDownload() {
   const info = state.info;
   if (!info || (state.mode === 'custom' && !state.format)) return;
+  const clip = state.clip.enabled && clipAvailable() ? [state.clip.start, state.clip.end] : null;
+  if (clip && clip[1] - clip[0] < 0.5) return;
   const id = crypto.randomUUID();
   const req = {
     url: state.fetchedURL, mode: state.mode, height: state.height, container: state.container,
     audioFormat: state.audioFormat, audioQuality: state.audioQuality, format: state.format,
-    cookies: $('cookies').value, dir: state.downloadsDir,
+    cookies: $('cookies').value, dir: state.downloadsDir, clip,
   };
   state.jobs.set(id, {
     id, title: info.title, thumbnail: info.thumbnail,
-    summary: summary() + (info.videoCount > 1 ? ` · ${info.videoCount} video` : ''),
+    summary: summary() + (info.videoCount > 1 ? ` · ${info.videoCount} video` : '')
+      + (clip ? ` · ✂ ${clock(clip[0])}–${clock(clip[1])}` : ''),
     phase: 'starting', progress: 0, detail: 'Başlatılıyor…',
   });
   window.api.startDownload(id, req);
@@ -126,6 +131,139 @@ function startDownload() {
 }
 
 const isActive = (j) => ['starting', 'downloading', 'processing', 'converting'].includes(j.phase);
+
+// --- Kesim ---------------------------------------------------------------------------
+
+/** "1:23", "1:02:03", "83", "1:23,5" → saniye */
+function parseClock(text) {
+  const parts = text.trim().replace(/,/g, '.').split(':');
+  if (parts.length < 1 || parts.length > 3) return null;
+  let total = 0;
+  for (const p of parts) {
+    const v = Number(p);
+    if (p === '' || Number.isNaN(v) || v < 0) return null;
+    total = total * 60 + v;
+  }
+  return total;
+}
+
+/** Saniye → "1:23" / "1:02:03"; kesirliyse "1:23,5" */
+function clock(s) {
+  const whole = Math.floor(s), tenth = Math.round((s - whole) * 10);
+  const base = formatDuration(whole);
+  return tenth > 0 && tenth < 10 ? `${base},${tenth}` : base;
+}
+
+/** Kesim yalnızca süresi bilinen, tek videolu içeriklerde sunulur */
+const clipAvailable = () => !!state.info && state.info.videoCount === 1 && (state.info.duration || 0) >= 2;
+const video = () => $('clipVideo');
+
+function resetClip() {
+  state.clip = { enabled: false, start: 0, end: state.info?.duration || 0, stopAt: null };
+  $('clipEnabled').checked = false;
+  video().pause();
+  video().removeAttribute('src');
+  video().load();
+}
+
+function seekVideo(t) {
+  if (video().src) video().currentTime = t;
+  renderTimeline(t);
+}
+
+function setClip(start, end) {
+  const d = state.info.duration;
+  state.clip.start = Math.min(Math.max(0, start), d - 0.5);
+  state.clip.end = Math.max(Math.min(d, end), state.clip.start + 0.5);
+  renderClip();
+}
+
+function renderTimeline(current = video().currentTime || 0) {
+  const d = state.info?.duration || 1;
+  const pct = (t) => `${(t / d) * 100}%`;
+  $('handleStart').style.left = pct(state.clip.start);
+  $('handleEnd').style.left = pct(state.clip.end);
+  $('clipRange').style.left = pct(state.clip.start);
+  $('clipRange').style.width = pct(state.clip.end - state.clip.start);
+  $('playhead').style.left = pct(current);
+  $('clipNow').textContent = clock(current);
+}
+
+function renderClip() {
+  const available = clipAvailable();
+  $('clipCard').classList.toggle('hidden', !available);
+  if (!available) return;
+  const on = state.clip.enabled;
+  $('clipBody').classList.toggle('hidden', !on);
+  if (!on) return;
+
+  const preview = state.info.preview;
+  if (preview && video().getAttribute('src') !== preview) {
+    video().src = preview;
+    video().currentTime = state.clip.start;
+  }
+  $('player').classList.toggle('hidden', !preview || video().dataset.failed === '1');
+  $('noPreview').classList.toggle('hidden', !!preview && video().dataset.failed !== '1');
+  $('playRange').disabled = !preview || video().dataset.failed === '1';
+
+  if (document.activeElement !== $('clipStart')) $('clipStart').value = clock(state.clip.start);
+  if (document.activeElement !== $('clipEnd')) $('clipEnd').value = clock(state.clip.end);
+  $('clipSummary').innerHTML = `Seçilen: <b>${clock(state.clip.end - state.clip.start)}</b>  (${clock(state.clip.start)} – ${clock(state.clip.end)})`;
+  renderTimeline();
+}
+
+// Zaman çizelgesi: tutamaçları sürükle, boş yere tıklayınca oynatıcı oraya gider
+function timeAt(clientX) {
+  const r = $('timeline').getBoundingClientRect();
+  return Math.min(Math.max((clientX - r.left) / r.width, 0), 1) * (state.info?.duration || 0);
+}
+function drag(target, onMove) {
+  target.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    target.setPointerCapture(e.pointerId);
+    video().pause();
+    onMove(timeAt(e.clientX));
+    const move = (ev) => onMove(timeAt(ev.clientX));
+    const up = () => { target.removeEventListener('pointermove', move); target.removeEventListener('pointerup', up); };
+    target.addEventListener('pointermove', move);
+    target.addEventListener('pointerup', up);
+  });
+}
+drag($('handleStart'), (t) => { setClip(Math.min(t, state.clip.end - 0.5), state.clip.end); seekVideo(state.clip.start); });
+drag($('handleEnd'), (t) => { setClip(state.clip.start, Math.max(t, state.clip.start + 0.5)); seekVideo(state.clip.end); });
+drag($('timeline').querySelector('.track'), (t) => seekVideo(t));
+
+$('clipEnabled').onchange = () => { state.clip.enabled = $('clipEnabled').checked; if (!state.clip.enabled) video().pause(); renderClip(); };
+for (const [id, which] of [['clipStart', 'start'], ['clipEnd', 'end']]) {
+  const commit = () => {
+    const v = parseClock($(id).value);
+    if (v != null) {
+      which === 'start' ? setClip(v, state.clip.end) : setClip(state.clip.start, v);
+      seekVideo(state.clip[which]);
+    }
+    $(id).value = clock(state.clip[which]);
+  };
+  $(id).addEventListener('change', commit);
+  $(id).addEventListener('keydown', (e) => { if (e.key === 'Enter') { commit(); $(id).blur(); } });
+}
+$('startNow').onclick = () => setClip(Math.min(video().currentTime || 0, state.clip.end - 0.5), state.clip.end);
+$('endNow').onclick = () => setClip(state.clip.start, Math.max(video().currentTime || 0, state.clip.start + 0.5));
+$('playRange').onclick = () => {
+  if (!video().paused) { video().pause(); return; }
+  video().currentTime = state.clip.start;
+  state.clip.stopAt = state.clip.end;
+  video().play();
+};
+video().addEventListener('timeupdate', () => {
+  const t = video().currentTime;
+  if (state.clip.stopAt != null && t >= state.clip.stopAt) { video().pause(); video().currentTime = state.clip.stopAt; }
+  renderTimeline(t);
+});
+video().addEventListener('play', () => { $('playRange').textContent = '❚❚ Durdur'; });
+video().addEventListener('pause', () => { $('playRange').textContent = '▶ Seçimi oynat'; state.clip.stopAt = null; });
+video().addEventListener('error', () => { if (video().getAttribute('src')) { video().dataset.failed = '1'; renderClip(); } });
+video().addEventListener('loadstart', () => { delete video().dataset.failed; });
 
 // --- Çizim --------------------------------------------------------------------------
 
@@ -194,7 +332,9 @@ function render() {
     return row;
   }));
 
-  $('downloadBtn').disabled = state.mode === 'custom' && !state.format;
+  $('downloadBtn').disabled = (state.mode === 'custom' && !state.format)
+    || (state.clip.enabled && clipAvailable() && state.clip.end - state.clip.start < 0.5);
+  renderClip();
 }
 
 function renderJobs() {
@@ -213,7 +353,7 @@ function renderJobs() {
     line.append(el('span', 'summary', j.summary), el('span', 'detail', j.detail));
     body.append(el('div', 'jtitle', j.title), line);
     if (isActive(j)) {
-      const bar = el('div', `progress${j.phase === 'processing' ? ' indeterminate' : ''}`);
+      const bar = el('div', `progress${j.phase === 'processing' || j.indeterminate ? ' indeterminate' : ''}`);
       const fill = el('div');
       fill.style.width = `${Math.max(2, j.progress * 100)}%`;
       bar.append(fill);

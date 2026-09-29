@@ -12,6 +12,7 @@ struct ContentView: View {
                     if let info = state.info {
                         VideoCard(info: info)
                         OptionsCard(info: info)
+                        if state.clipAvailable { ClipCard(info: info) }
                         DownloadButton()
                     } else if !state.isFetching {
                         EmptyHint()
@@ -362,7 +363,7 @@ private struct Tag: View {
     }
 }
 
-private struct Hint: View {
+struct Hint: View {
     let icon: String
     let text: String
     var body: some View {
@@ -490,7 +491,7 @@ private struct JobRow: View {
                         .textSelection(.enabled)
                 }
                 if job.isActive {
-                    ProgressBar(value: job.phase == .processing ? nil : job.progress)
+                    ProgressBar(value: job.phase == .processing || job.indeterminate ? nil : job.progress)
                 }
             }
 
