@@ -51,6 +51,13 @@ struct VideoInfo: Decodable {
             ?? pick(hls.filter { $0.vcodec?.hasPrefix("avc") == true })
             ?? pick(hls)
     }
+
+    /// Önizleme akışında ses yoksa (YouTube'da sık) ses ayrıca hazırlanıp eş zamanlı çalınır
+    var previewNeedsAudio: Bool { previewFormat.map { !$0.hasAudio } ?? false }
+
+    /// Video yalnızca DASH parçalarıyla sunuluyorsa (ör. yeni bitmiş canlı yayınlar): doğrudan oynatılabilir
+    /// önizleme akışı yoktur ve bölüm indirme boş dosya üretir; kesit tam indirilip bilgisayarda kesilir.
+    var dashOnly: Bool { !usableFormats.isEmpty && usableFormats.allSatisfy { $0.proto == "http_dash_segments" } }
 }
 
 struct VideoFormat: Decodable, Identifiable, Hashable {
@@ -111,6 +118,7 @@ struct DownloadRequest {
     var format: VideoFormat?
     var cookiesBrowser: String?   // giriş gerektiren içerikler için tarayıcı oturumu
     var clip: ClosedRange<Double>?  // yalnızca bu aralığı indir (saniye)
+    var localCut = false            // kesiti doğrudan "tam indir + bilgisayarda kes" yoluyla al
 
     var summary: String {
         switch mode {

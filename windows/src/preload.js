@@ -15,6 +15,10 @@ contextBridge.exposeInMainWorld('api', {
   readClipboard: () => ipcRenderer.invoke('read-clipboard'),
   updateTools: () => ipcRenderer.invoke('update-tools'),
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
+  preparePreviewAudio: (url, cookies) => ipcRenderer.invoke('prepare-preview-audio', url, cookies),
+  clearPreviewAudio: () => ipcRenderer.invoke('clear-preview-audio'),
+  prepareLocalPreview: (url, cookies) => ipcRenderer.invoke('prepare-local-preview', url, cookies),
+  onPreviewProgress: (fn) => ipcRenderer.on('preview-progress', (_e, p) => fn(p)),
   onJobUpdate: (fn) => ipcRenderer.on('job-update', (_e, state) => fn(state)),
   onFocus: (fn) => ipcRenderer.on('focused', () => fn()),
 });

@@ -98,6 +98,8 @@ struct HelpView: View {
             Step(1, "Seçeneklerin altındaki **Sadece bir kısmını indir** anahtarını aç; video önizlemesi görünür.")
             Step(2, "Zaman çizelgesindeki iki tutamacı sürükleyerek başlangıcı ve bitişi seç. İstersen **1:23** gibi elle yaz ya da oynatıcıyı istediğin yere getirip **Şu an**'a bas.")
             Step(3, "**Seçimi oynat** ile kontrol et, sonra **İndir**. Aralık dosya adına eklenir, ör. *(1.23-2.45)*.")
+            Bullet("Önizlemenin sesi bazı videolarda birkaç saniye sonra gelir; bu sırada görüntünün köşesinde **Ses hazırlanıyor…** yazar.")
+            Bullet("Yeni bitmiş canlı yayınlar gibi bazı videolar doğrudan oynatılamaz; önizleme için düşük kaliteli bir kopya indirilir (**Önizleme hazırlanıyor…**) ve kesit, video tam indirilip bilgisayarda kesilerek alınır. Bu biraz daha uzun sürer.")
             Bullet("Kesimler tam seçtiğin saniyeden yapılır; bu yüzden kesilen parçanın indirilmesi biraz daha uzun sürebilir.")
             Bullet("Birden fazla video içeren gönderilerde ve canlı yayınlarda bu seçenek görünmez.")
         }

@@ -41,7 +41,7 @@ final class AppState: ObservableObject {
 
     @Published var showHelp = false
 
-    private var fetchedURL = ""
+    private(set) var fetchedURL = ""
     private var lastClipboard = ""
     private var badgeTimer: Timer?
 
@@ -149,7 +149,10 @@ final class AppState: ObservableObject {
         req.audioQuality = audioQuality
         req.format = customFormat
         req.cookiesBrowser = cookiesBrowser
-        if clipEnabled, clipAvailable { req.clip = clipStart...clipEnd }
+        if clipEnabled, clipAvailable {
+            req.clip = clipStart...clipEnd
+            req.localCut = info.dashOnly
+        }
 
         var summary = req.summary
         if let clip = req.clip { summary += " · ✂︎ \(formatClock(clip.lowerBound))–\(formatClock(clip.upperBound))" }

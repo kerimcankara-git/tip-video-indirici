@@ -16,7 +16,7 @@ const state = {
   info: null, fetchedURL: '', fetching: false, toolsReady: false,
   mode: 'video', height: null, container: 'mp4', audioFormat: 'mp3', audioQuality: 192, format: null,
   jobs: new Map(), downloadsDir: '', lastClipboard: '',
-  clip: { enabled: false, start: 0, end: 0, stopAt: null },   // sadece seçilen aralığı indir
+  clip: { enabled: false, start: 0, end: 0, stopAt: null, audio: 'none', local: 'none' },   // sadece seçilen aralığı indir
 };
 
 // --- Yardımcılar ------------------------------------------------------------------
@@ -119,6 +119,7 @@ function startDownload() {
     url: state.fetchedURL, mode: state.mode, height: state.height, container: state.container,
     audioFormat: state.audioFormat, audioQuality: state.audioQuality, format: state.format,
     cookies: $('cookies').value, dir: state.downloadsDir, clip,
+    localCut: !!clip && !!info.dashOnly,   // yalnızca DASH: kesit tam indirilip bilgisayarda kesilir
   };
   state.jobs.set(id, {
     id, title: info.title, thumbnail: info.thumbnail,
@@ -159,11 +160,76 @@ const clipAvailable = () => !!state.info && state.info.videoCount === 1 && (stat
 const video = () => $('clipVideo');
 
 function resetClip() {
-  state.clip = { enabled: false, start: 0, end: state.info?.duration || 0, stopAt: null };
+  state.clip = { enabled: false, start: 0, end: state.info?.duration || 0, stopAt: null, audio: 'none', local: 'none' };
   $('clipEnabled').checked = false;
   video().pause();
   video().removeAttribute('src');
+  delete video().dataset.failed;
   video().load();
+  audio().pause();
+  audio().removeAttribute('src');
+  audio().load();
+  window.api.clearPreviewAudio();
+}
+
+// --- Yerel önizleme: doğrudan oynatılabilir akış yoksa (ör. yeni bitmiş canlı yayınlar, yalnızca DASH) ---
+async function prepareLocalPreview() {
+  if (state.clip.local !== 'none') return;
+  const forURL = state.fetchedURL;
+  state.clip.local = 'preparing';
+  $('localPreviewBar').style.width = '0%';
+  $('localPreviewText').textContent = 'Önizleme hazırlanıyor…';
+  audio().removeAttribute('src');
+  state.clip.audio = 'none';
+  try {
+    const src = await window.api.prepareLocalPreview(forURL, $('cookies').value);
+    if (!src || state.fetchedURL !== forURL) return;   // bu arada başka bir video yüklendi
+    delete video().dataset.failed;
+    video().src = src;
+    video().currentTime = state.clip.start;
+    state.clip.local = 'ready';
+  } catch {
+    if (state.fetchedURL === forURL) state.clip.local = 'failed';
+  }
+  renderClip();
+}
+window.api.onPreviewProgress((p) => {
+  if (state.clip.local !== 'preparing') return;
+  $('localPreviewBar').style.width = `${Math.round(p * 100)}%`;
+  $('localPreviewText').textContent = `Önizleme hazırlanıyor… %${Math.round(p * 100)}`;
+});
+
+// --- Önizleme sesi: akışta ses yoksa ayrıca hazırlanır ve görüntüyle eş zamanlı çalınır ---
+const audio = () => $('clipAudio');
+
+async function prepareAudio() {
+  if (state.clip.audio !== 'none' || !state.info?.previewNeedsAudio) return;
+  const forURL = state.fetchedURL;
+  state.clip.audio = 'preparing';
+  renderAudioBadge();
+  try {
+    const src = await window.api.preparePreviewAudio(forURL, $('cookies').value);
+    if (!src || state.fetchedURL !== forURL) return;   // bu arada başka bir video yüklendi
+    audio().src = src;
+    state.clip.audio = 'ready';
+    syncAudio(true);
+  } catch {
+    if (state.fetchedURL === forURL) state.clip.audio = 'failed';
+  }
+  renderAudioBadge();
+}
+
+function renderAudioBadge() {
+  const badge = $('audioBadge');
+  badge.classList.toggle('hidden', !['preparing', 'failed'].includes(state.clip.audio));
+  badge.innerHTML = state.clip.audio === 'preparing' ? '<span class="spinner"></span> Ses hazırlanıyor…' : '🔇 Ses açılamadı';
+}
+
+/** Sesi görüntünün konumuna ve oynatma durumuna getirir; oynarken 0,25 sn'den fazla kayarsa yeniden hizalar */
+function syncAudio(force = false) {
+  if (state.clip.audio !== 'ready') return;
+  if (force || Math.abs(audio().currentTime - video().currentTime) > 0.25) audio().currentTime = video().currentTime;
+  if (video().paused) audio().pause(); else audio().play().catch(() => {});
 }
 
 function seekVideo(t) {
@@ -197,21 +263,32 @@ function renderClip() {
   $('clipBody').classList.toggle('hidden', !on);
   if (!on) return;
 
-  const preview = state.info.preview;
-  if (preview && video().getAttribute('src') !== preview) {
-    video().src = preview;
-    video().currentTime = state.clip.start;
-    // Bazı akışlar ne açılır ne hata verir; 10 sn içinde yüklenmezse "önizleme açılamadı"ya geç
-    setTimeout(() => {
-      if (video().getAttribute('src') === preview && video().readyState < 1) {
-        video().dataset.failed = '1';
-        renderClip();
-      }
-    }, 10000);
+  // Önce doğrudan akış; yoksa ya da açılmazsa düşük kaliteli sesli bir kopya indirilip oynatılır
+  const direct = state.info.preview;
+  const directFailed = video().dataset.failed === '1' && state.clip.local === 'none';
+  if (direct && !directFailed && state.clip.local === 'none') {
+    if (video().getAttribute('src') !== direct) {
+      video().src = direct;
+      video().currentTime = state.clip.start;
+      // Bazı akışlar ne açılır ne hata verir; 10 sn içinde yüklenmezse yerel kopyaya geç
+      setTimeout(() => {
+        if (video().getAttribute('src') === direct && video().readyState < 1) {
+          video().dataset.failed = '1';
+          renderClip();
+        }
+      }, 10000);
+    }
+    prepareAudio();
+  } else if (state.clip.local === 'none') {
+    prepareLocalPreview();
   }
-  $('player').classList.toggle('hidden', !preview || video().dataset.failed === '1');
-  $('noPreview').classList.toggle('hidden', !!preview && video().dataset.failed !== '1');
-  $('playRange').disabled = !preview || video().dataset.failed === '1';
+  renderAudioBadge();
+
+  const playing = state.clip.local === 'ready' || (direct && !directFailed && state.clip.local === 'none');
+  $('player').classList.toggle('hidden', !playing);
+  $('localPreviewBox').classList.toggle('hidden', state.clip.local !== 'preparing');
+  $('noPreview').classList.toggle('hidden', state.clip.local !== 'failed');
+  $('playRange').disabled = !playing;
 
   if (document.activeElement !== $('clipStart')) $('clipStart').value = clock(state.clip.start);
   if (document.activeElement !== $('clipEnd')) $('clipEnd').value = clock(state.clip.end);
@@ -265,11 +342,20 @@ $('playRange').onclick = () => {
 video().addEventListener('timeupdate', () => {
   const t = video().currentTime;
   if (state.clip.stopAt != null && t >= state.clip.stopAt) { video().pause(); video().currentTime = state.clip.stopAt; }
+  if (!video().paused) syncAudio();
   renderTimeline(t);
 });
-video().addEventListener('play', () => { $('playRange').textContent = '❚❚ Durdur'; });
-video().addEventListener('pause', () => { $('playRange').textContent = '▶ Seçimi oynat'; state.clip.stopAt = null; });
-video().addEventListener('error', () => { if (video().getAttribute('src')) { video().dataset.failed = '1'; renderClip(); } });
+video().addEventListener('play', () => { $('playRange').textContent = '❚❚ Durdur'; syncAudio(true); });
+video().addEventListener('pause', () => { $('playRange').textContent = '▶ Seçimi oynat'; state.clip.stopAt = null; syncAudio(); });
+video().addEventListener('seeked', () => syncAudio(true));
+video().addEventListener('waiting', () => audio().pause());
+video().addEventListener('playing', () => syncAudio(true));
+video().addEventListener('error', () => {
+  if (!video().getAttribute('src')) return;
+  if (state.clip.local === 'ready') state.clip.local = 'failed';   // yerel kopya da açılamadı
+  else video().dataset.failed = '1';                               // doğrudan akış açılamadı → yerel kopyaya geç
+  renderClip();
+});
 video().addEventListener('loadstart', () => { delete video().dataset.failed; });
 
 // --- Çizim --------------------------------------------------------------------------

@@ -169,6 +169,17 @@ body.dragging .empty, body.dragging .urlbar { border-color: var(--accent); backg
 .now { position: absolute; left: 8px; bottom: 8px; padding: 2px 6px; border-radius: 5px; background: rgba(0,0,0,.7); color: #fff;
        font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; }
 
+.preparing { aspect-ratio: 16 / 9; max-height: 300px; border-radius: 10px; background: var(--chip);
+             display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; padding: 16px; }
+.preparing b { font-size: 12.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.preparing small { font-size: 11px; color: var(--muted); }
+.preparing .bar { width: 220px; height: 5px; border-radius: 3px; background: var(--chip-hover); overflow: hidden; }
+.preparing .bar div { height: 100%; width: 0; background: var(--grad); transition: width .3s ease-out; }
+
+.audio-badge { position: absolute; right: 8px; top: 8px; display: flex; align-items: center; gap: 6px; padding: 3px 7px; border-radius: 5px;
+               background: rgba(0,0,0,.7); color: #fff; font-size: 11px; font-weight: 600; }
+.audio-badge .spinner { width: 10px; height: 10px; border-width: 1.5px; }
+
 .timeline { position: relative; height: 36px; touch-action: none; }
 .timeline .track { position: absolute; inset: 0; border-radius: 6px; background: var(--chip-hover); cursor: pointer; }
 .timeline .range { position: absolute; top: 0; bottom: 0; border-radius: 6px; background: color-mix(in srgb, var(--accent) 22%, transparent); pointer-events: none; }
